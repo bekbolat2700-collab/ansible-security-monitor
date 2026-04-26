@@ -1,0 +1,54 @@
+---
+- name: "Security and Performance Audit"
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    - name: "1. Check for world-writable files (Security Risk)"
+      shell: "find /home/predator -type f -perm 0777"
+      register: dangerous_files
+      ignore_errors: yes
+
+    - name: "Display dangerous files if any"
+      debug:
+        msg: "WARNING: These files have 777 permissions: {{ dangerous_files.stdout }}"
+      when: dangerous_files.stdout != ""
+
+    - name: "2. Get Top 5 Memory-Consuming Processes"
+      shell: "ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n 6"
+      register: top_processes
+
+    - name: "Display Top Processes"
+      debug:
+        msg: "{{ top_processes.stdout_lines }}"
+
+    - name: "3. Check Free Disk Space"
+      shell: "df -h / | awk 'NR==2 {print $4}'"
+      register: disk_free
+
+    - name: "Update Audit Log with New Info"
+      copy:
+        dest: /var/log/system_health.log
+        content: |
+          --- Audit Report for Bekbolat ---
+          Date: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+          Free Disk Space: {{ disk_free.stdout }}
+          Memory Status: Checked
+          ---------------------------------
+
+    - name: "4. Audit Listening Ports"
+      shell: "ss -tuln | grep LISTEN"
+      register: open_ports
+
+    - name: "Display Open Ports"
+      debug:
+        msg: "{{ open_ports.stdout_lines }}"
+
+    - name: "Update Audit Log with Network Info"
+      replace:
+        path: /var/log/system_health.log
+        regexp: '---------------------------------'
+        replace: |
+          Network: Listening ports checked.
+          ---------------------------------

@@ -1,0 +1,31 @@
+---
+- name: "Send System Health to Telegram"
+  hosts: localhost
+  connection: local
+  
+  vars:
+    tg_token: "8614512641:AAGo-S1Bl7MEJUnlf-Tk_CzV-C6LWmAiz2I"
+    tg_chat_id: "868180330"
+
+  tasks:
+    - name: "Check RAM Usage"
+      shell: "free -m | awk 'NR==2{printf \"Memory Usage: %s/%sMB (%.2f%%)\\n\", $3,$2,$3*100/$2 }'"
+      register: mem_usage
+
+    - name: "Check Disk Usage"
+      shell: "df -h / | awk 'NR==2 {print $5}'"
+      register: disk_pcent
+
+    - name: "Send message to Telegram"
+      community.general.telegram:
+        token: "{{ tg_token }}"
+        api_args:
+          chat_id: "{{ tg_chat_id }}"
+          parse_mode: "Markdown"
+          text: |
+            *🚀 Отчет по системе (Bekbolat Labs)*
+            ----------------------------------
+            📊 *Память:* {{ mem_usage.stdout }}
+            💾 *Диск:* Занято {{ disk_pcent.stdout }}
+            🛡️ *Статус:* Проверка завершена успешно.
+            ----------------------------------
