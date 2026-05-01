@@ -11,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
 
       - name: Run Ansible Lint
-        uses: ansible/ansible-lint@v6
+        uses: ansible/ansible-lint@v24
