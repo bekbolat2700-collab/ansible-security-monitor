@@ -1,5 +1,5 @@
 # Ansible System Health & Security Monitor
-
+![Ansible Lint](https://github.com/bekbolat2700-collab/ansible-security-monitor/actions/workflows/ansible-lint.yml/badge.svg)
 A lightweight automation tool designed to audit system resources and security configurations, delivering real-time reports via Telegram.
 
 ## 🚀 Features
