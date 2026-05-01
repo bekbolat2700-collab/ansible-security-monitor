@@ -7,6 +7,9 @@ A lightweight automation tool designed to audit system resources and security co
 - **Security Auditing:** Scans for world-writable files (777 permissions) to identify potential vulnerabilities.
 - **Network Visibility:** Lists all active listening ports.
 - **Instant Alerts:** Sends formatted Markdown reports directly to a Telegram bot.
+## 📸 Example Output
+
+![Telegram Report](screenshots/telegram-report.png)
 
 ## 🛠 Tech Stack
 - **Infrastructure as Code:** Ansible
