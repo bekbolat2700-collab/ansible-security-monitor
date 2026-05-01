@@ -2,19 +2,19 @@
 - name: "Send System Health to Telegram"
   hosts: localhost
   connection: local
-  
   vars:
-    tg_token: "8614512641:AAGo-S1Bl7MEJUnlf-Tk_CzV-C6LWmAiz2I"
-    tg_chat_id: "868180330"
-
+    tg_token: "{{ lookup('env', 'TG_TOKEN') }}"
+    tg_chat_id: "{{ lookup('env', 'TG_CHAT_ID') }}"
   tasks:
     - name: "Check RAM Usage"
-      shell: "free -m | awk 'NR==2{printf \"Memory Usage: %s/%sMB (%.2f%%)\\n\", $3,$2,$3*100/$2 }'"
+      ansible.builtin.shell: "free -m | awk 'NR==2{printf \"Memory Usage: %s/%sMB (%.2f%%)\\n\", $3,$2,$3*100/$2 }'"
       register: mem_usage
+      changed_when: false
 
     - name: "Check Disk Usage"
-      shell: "df -h / | awk 'NR==2 {print $5}'"
+      ansible.builtin.shell: "df -h / | awk 'NR==2 {print $5}'"
       register: disk_pcent
+      changed_when: false
 
     - name: "Send message to Telegram"
       community.general.telegram:
