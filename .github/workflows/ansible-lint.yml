@@ -1,4 +1,4 @@
-name: Ansible Lint
+name: Ansible Lint & Security Scan
 
 on:
   push:
@@ -21,3 +21,17 @@ jobs:
 
       - name: Run Ansible Lint
         run: ansible-lint --warn-list fqcn,no-changed-when,risky-shell-pipe,yaml,command-instead-of-shell,file-permissions telegram_report.yml security_audit.yml || true
+
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
