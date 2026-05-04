@@ -12,13 +12,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Install Ansible and lint
         run: pip install ansible ansible-lint
-
       - name: Install Ansible collections
         run: ansible-galaxy collection install community.general
-
       - name: Run Ansible Lint
         run: ansible-lint --warn-list fqcn,no-changed-when,risky-shell-pipe,yaml,command-instead-of-shell,file-permissions telegram_report.yml security_audit.yml || true
 
@@ -27,8 +24,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
