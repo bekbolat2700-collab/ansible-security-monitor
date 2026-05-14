@@ -7,7 +7,7 @@ on:
 jobs:
   security-gate:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,16 +31,18 @@ jobs:
           trivy fs . --severity HIGH,CRITICAL --format json -o trivy-report.json
           cat trivy-report.json
 
+      - name: Install Python deps
+        run: pip install requests python-dotenv
+
+      - name: Debug Telegram vars
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python3 debug_ci.py
+
       - name: AI Security Decision
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: |
-          pip install requests python-dotenv 
-          python3 -c "
-import os
-print('TOKEN set:', bool(os.getenv('TELEGRAM_BOT_TOKEN')))
-print('CHAT_ID:', os.getenv('TELEGRAM_CHAT_ID'))
-"
-          python3 ai_security_advisor.py
+        run: python3 ai_security_advisor.py
