@@ -37,5 +37,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          pip install requests python-dotenv
+          pip install requests python-dotenv 
+          python3 -c "
+import os
+print('TOKEN set:', bool(os.getenv('TELEGRAM_BOT_TOKEN')))
+print('CHAT_ID:', os.getenv('TELEGRAM_CHAT_ID'))
+"
           python3 ai_security_advisor.py
