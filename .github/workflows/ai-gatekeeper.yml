@@ -37,5 +37,5 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          pip install requests
+          pip install requests python-dotenv
           python3 ai_security_advisor.py
