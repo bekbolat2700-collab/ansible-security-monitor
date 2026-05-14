@@ -39,7 +39,8 @@ def send_telegram(message):
         "text": message,
         "parse_mode": "Markdown"
     }
-    requests.post(url, json=payload)
+    r = requests.post(url, json=payload)
+    print("Telegram response:", r.json())
 
 def main(trivy_output):
     if "HIGH" in trivy_output or "CRITICAL" in trivy_output:
