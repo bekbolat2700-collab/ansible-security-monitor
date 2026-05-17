@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-monitor
+  namespace: security-monitor
+  labels:
+    app: security-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-monitor
+  template:
+    metadata:
+      labels:
+        app: security-monitor
+    spec:
+      containers:
+      - name: security-monitor
+        image: python:3.11-slim
+        command: ["python", "-c", "import time; print('AI Security Monitor Running'); time.sleep(3600)"]
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        env:
+        - name: ENVIRONMENT
+          value: "production"
