@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
       - name: security-monitor
-        image: python:3.11-slim
-        command: ["python", "-c", "import time; print('AI Security Monitor Running'); time.sleep(3600)"]
+        image: security-monitor:latest
+        imagePullPolicy: Never
         resources:
           requests:
             memory: "64Mi"

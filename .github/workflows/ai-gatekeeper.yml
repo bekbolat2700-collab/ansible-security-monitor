@@ -12,6 +12,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build Docker image
+        run: |
+          docker build -t security-monitor:latest .
+          docker images | grep security-monitor
+
       - name: Install k3d
         run: |
           curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
@@ -21,6 +26,10 @@ jobs:
         run: |
           k3d cluster create devsecops --wait
           kubectl get nodes
+
+      - name: Import image to k3d
+        run: |
+          k3d image import security-monitor:latest -c devsecops
 
       - name: Install Trivy
         run: |
