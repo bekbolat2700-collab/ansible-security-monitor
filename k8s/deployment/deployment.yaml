@@ -15,6 +15,7 @@ spec:
       labels:
         app: security-monitor
     spec:
+      serviceAccountName: security-monitor-sa
       containers:
       - name: security-monitor
         image: security-monitor:latest

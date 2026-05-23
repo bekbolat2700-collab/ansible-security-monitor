@@ -59,6 +59,9 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/namespace/namespace.yaml
+          kubectl apply -f k8s/rbac/serviceaccount.yaml
+          kubectl apply -f k8s/rbac/role.yaml
+          kubectl apply -f k8s/rbac/rolebinding.yaml
           kubectl apply -f k8s/deployment/deployment.yaml
           kubectl apply -f k8s/service/service.yaml
           kubectl apply -f k8s/network-policy/network-policy.yaml

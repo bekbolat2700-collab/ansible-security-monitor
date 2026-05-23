@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: security-monitor-rolebinding
+  namespace: security-monitor
+  labels:
+    app: security-monitor
+subjects:
+  - kind: ServiceAccount
+    name: security-monitor-sa
+    namespace: security-monitor
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: security-monitor-role
