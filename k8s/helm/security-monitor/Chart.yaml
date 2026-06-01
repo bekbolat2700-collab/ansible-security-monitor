@@ -1,0 +1,14 @@
+apiVersion: v2
+name: security-monitor
+description: AI-Powered DevSecOps Security Monitor
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - devsecops
+  - security
+  - kubernetes
+  - ai
+maintainers:
+  - name: Bekbolat Zhumabekov
+    url: https://github.com/bekbolat2700-collab

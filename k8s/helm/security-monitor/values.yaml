@@ -1,0 +1,44 @@
+# Application settings
+app:
+  name: security-monitor
+  namespace: security-monitor
+  replicas: 1
+
+# Container image
+image:
+  repository: security-monitor
+  tag: latest
+  pullPolicy: Never
+
+# Resource limits
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "250m"
+  limits:
+    memory: "128Mi"
+    cpu: "500m"
+
+# Service settings
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# Security settings
+security:
+  rbac:
+    enabled: true
+  networkPolicy:
+    enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Vault settings
+vault:
+  enabled: true
+  address: "http://vault:8200"
+  secretPath: "secret/data/security-monitor"
+
+# Environment
+environment: production

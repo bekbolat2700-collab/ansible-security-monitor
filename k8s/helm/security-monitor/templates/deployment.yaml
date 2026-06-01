@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      serviceAccountName: {{ .Values.app.name }}-sa
+      securityContext:
+        runAsNonRoot: {{ .Values.security.runAsNonRoot }}
+        runAsUser: {{ .Values.security.runAsUser }}
+      containers:
+      - name: {{ .Values.app.name }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory }}
+            cpu: {{ .Values.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.resources.limits.memory }}
+            cpu: {{ .Values.resources.limits.cpu }}
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.environment }}
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address }}

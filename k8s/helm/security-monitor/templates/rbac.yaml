@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.app.name }}-sa
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app: {{ .Values.app.name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.app.name }}-role
+  namespace: {{ .Values.app.namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.app.name }}-rolebinding
+  namespace: {{ .Values.app.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.app.name }}-sa
+    namespace: {{ .Values.app.namespace }}
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ .Values.app.name }}-role
