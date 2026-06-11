@@ -45,8 +45,8 @@ jobs:
 
       - name: Run tfsec on Terraform
         run: |
-          tfsec terraform/ --format json -o tfsec-report.json || true
           tfsec terraform/
+
       - name: Install Python deps
         run: pip install requests python-dotenv
 
