@@ -3,6 +3,9 @@ name: KICS Security Scan
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'README.md'
+      - '**.md'
   pull_request:
   workflow_dispatch:
 
