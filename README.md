@@ -29,3 +29,4 @@ A lightweight automation tool designed to audit system resources and security co
 
 ## 🔒 Security Note
 This project follows security best practices by using variable files (`vars.yml`) for sensitive credentials, ensuring no tokens are exposed in the public repository.
+# KICS Security Scan added
