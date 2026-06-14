@@ -1,32 +1,82 @@
-# Ansible System Health & Security Monitor
-![Ansible Lint](https://github.com/bekbolat2700-collab/ansible-security-monitor/actions/workflows/ansible-lint.yml/badge.svg)
-A lightweight automation tool designed to audit system resources and security configurations, delivering real-time reports via Telegram.
+# 🛡️ Ansible Security Monitor
 
-## 🚀 Features
-- **Resource Monitoring:** Tracks RAM and Disk usage with percentage calculations.
-- **Security Auditing:** Scans for world-writable files (777 permissions) to identify potential vulnerabilities.
-- **Network Visibility:** Lists all active listening ports.
-- **Instant Alerts:** Sends formatted Markdown reports directly to a Telegram bot.
-## 📸 Example Output
+> A production-grade DevSecOps pipeline built from scratch — documented as a 12-part LinkedIn series.
 
-![Telegram Report](screenshots/telegram-report.png)
+![Ansible Lint & Security Scan](https://github.com/bekbolat2700-collab/ansible-security-monitor/actions/workflows/ansible-lint.yml/badge.svg)
+![AI Security Gatekeeper](https://github.com/bekbolat2700-collab/ansible-security-monitor/actions/workflows/ai-security-gatekeeper.yml/badge.svg)
+![KICS Security Scan](https://github.com/bekbolat2700-collab/ansible-security-monitor/actions/workflows/kics.yml/badge.svg)
 
-## 🛠 Tech Stack
-- **Infrastructure as Code:** Ansible
-- **Target OS:** Linux (Ubuntu/WSL2)
-- **API Integration:** Telegram Bot API
-- **Configuration:** YAML
+## 🔍 What is this?
 
-## ⚙️ Setup & Usage
-1. **Prerequisites:** Ensure Ansible and `community.general` collection are installed.
-2. **Configuration:** Create a `vars.yml` file (excluded via .gitignore) with your:
-   - `tg_token`: Your Telegram Bot token
-   - `tg_chat_id`: Your Telegram Chat ID
-3. **Execution:**
-   ```bash
-   ansible-playbook telegram_report.yml
-   ```
+A real-world DevSecOps pipeline that automates security auditing across infrastructure code, containers, and Kubernetes — with AI-powered analysis and instant Telegram alerts.
 
-## 🔒 Security Note
-This project follows security best practices by using variable files (`vars.yml`) for sensitive credentials, ensuring no tokens are exposed in the public repository.
-# KICS Security Scan added
+Built and documented publicly as a LinkedIn series by [@bekbolat2700](https://www.linkedin.com/in/bekbolatzhumabekov/) 🥷🏻
+
+## 🧰 Tech Stack
+
+| Layer | Tool |
+|-------|------|
+| IaC & Automation | Ansible |
+| Containerization | Docker |
+| Orchestration | Kubernetes + Helm Charts |
+| Container Scanning | Trivy |
+| Terraform Scanning | tfsec |
+| Multi-IaC Scanning | KICS |
+| Secrets Management | HashiCorp Vault |
+| AI Analysis | Groq / Llama 3 |
+| CI/CD | GitHub Actions |
+| Monitoring | Netdata |
+| Alerts | Telegram Bot |
+
+## 🔒 Security Coverage
+
+| Tool | What It Scans |
+|------|--------------|
+| Trivy | Container images & dependencies (CVEs) |
+| tfsec | Terraform misconfigurations |
+| KICS | Terraform + Ansible + Helm + Dockerfile + K8s |
+| Vault | Secrets — no hardcoded credentials |
+| Ansible Lint | Playbook quality & security rules |
+
+## ⚡ GitHub Actions Workflows
+
+### 1. Ansible Lint & Security Scan
+Runs on every push. Lints all Ansible playbooks against security rules.
+
+### 2. AI Security Gatekeeper
+Uses Groq/Llama 3 to analyze scan results and make intelligent pass/fail decisions.
+
+### 3. KICS Security Scan
+Scans all IaC files for misconfigurations via Docker image.
+First scan results: HIGH: 2 | MEDIUM: 19 | LOW: 22 | TOTAL: 46
+
+## 📖 LinkedIn Series
+
+| Part | Topic |
+|------|-------|
+| Part 1-11 | [Full series on LinkedIn](https://www.linkedin.com/in/bekbolatzhumabekov/) |
+| Part 12 | KICS Multi-IaC scanning + supply chain attack |
+
+## 🚀 Quick Start
+
+\`\`\`bash
+git clone https://github.com/bekbolat2700-collab/ansible-security-monitor.git
+cd ansible-security-monitor
+
+docker run --rm \
+  -v $(pwd):/path \
+  checkmarx/kics:latest scan \
+  -p /path \
+  --report-formats json,sarif \
+  -o /path/kics-results \
+  --fail-on HIGH
+\`\`\`
+
+## 👤 Author
+
+**Bekbolat** — DevSecOps Engineer from Astana 🇰🇿
+
+- LinkedIn: [@bekbolatzhumabekov](https://www.linkedin.com/in/bekbolatzhumabekov/)
+- GitHub: [@bekbolat2700-collab](https://github.com/bekbolat2700-collab)
+
+> *"Security isn't one tool. It's a coverage map."*
