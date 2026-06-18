@@ -7,7 +7,7 @@ app:
 # Container image
 image:
   repository: security-monitor
-  tag: latest
+  tag: "1.0.0"
   pullPolicy: Never
 
 # Resource limits
@@ -33,6 +33,7 @@ security:
     enabled: true
   runAsNonRoot: true
   runAsUser: 1000
+  fsGroup: 2000
 
 # Vault settings
 vault:

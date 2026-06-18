@@ -14,12 +14,30 @@ spec:
     metadata:
       labels:
         app: security-monitor
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        container.apparmor.security.beta.kubernetes.io/security-monitor: runtime/default
     spec:
       serviceAccountName: security-monitor-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: security-monitor
-        image: security-monitor:latest
+        image: security-monitor:1.0.0
         imagePullPolicy: Never
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
         resources:
           requests:
             memory: "64Mi"
@@ -30,3 +48,17 @@ spec:
         env:
         - name: ENVIRONMENT
           value: "production"
+        livenessProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/healthy
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 5

@@ -14,15 +14,30 @@ spec:
     metadata:
       labels:
         app: {{ .Values.app.name }}
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        container.apparmor.security.beta.kubernetes.io/{{ .Values.app.name }}: runtime/default
     spec:
       serviceAccountName: {{ .Values.app.name }}-sa
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: {{ .Values.security.runAsNonRoot }}
         runAsUser: {{ .Values.security.runAsUser }}
+        fsGroup: {{ .Values.security.fsGroup }}
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: {{ .Values.app.name }}
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: {{ .Values.security.runAsNonRoot }}
+          runAsUser: {{ .Values.security.runAsUser }}
+          capabilities:
+            drop:
+              - ALL
         resources:
           requests:
             memory: {{ .Values.resources.requests.memory }}
@@ -35,3 +50,17 @@ spec:
           value: {{ .Values.environment }}
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
+        livenessProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/healthy
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 5
