@@ -1,5 +1,4 @@
 name: AI Security Gatekeeper
-
 on:
   push:
     branches: [main, master]
@@ -7,7 +6,6 @@ on:
 jobs:
   security-gate:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,6 +14,49 @@ jobs:
         run: |
           docker build -t security-monitor:latest .
           docker images | grep security-monitor
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run Trivy scan
+        run: |
+          trivy fs . --severity HIGH,CRITICAL --format json -o trivy-report.json
+          echo "Trivy done"
+
+      - name: Install tfsec
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+
+      - name: Run tfsec scan
+        run: |
+          tfsec terraform/ --format text 2>&1 | tee tfsec-output.txt || true
+          echo "tfsec done"
+
+      - name: Run KICS scan
+        run: |
+          mkdir -p kics-results
+          docker run --rm \
+            -v ${{ github.workspace }}:/path \
+            checkmarx/kics:latest scan \
+            -p /path \
+            --report-formats json \
+            -o /path/kics-results \
+            --ignore-on-exit results || true
+          echo "KICS done"
+
+      - name: Install Python deps
+        run: pip install requests python-dotenv
+
+      - name: AI Security Decision + Unified Report
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TFSEC_OUTPUT: ${{ hashFiles('tfsec-output.txt') }}
+        run: |
+          export TFSEC_OUTPUT=$(cat tfsec-output.txt 2>/dev/null || echo "")
+          python3 ai_security_advisor.py
 
       - name: Install k3d
         run: |
@@ -30,38 +71,6 @@ jobs:
       - name: Import image to k3d
         run: |
           k3d image import security-monitor:latest -c devsecops
-
-      - name: Install Trivy
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Run Trivy scan
-        run: |
-          trivy fs . --severity HIGH,CRITICAL --format json -o trivy-report.json
-          cat trivy-report.json
-      - name: Install tfsec
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-
-      - name: Run tfsec on Terraform
-        run: |
-          tfsec terraform/
-
-      - name: Install Python deps
-        run: pip install requests python-dotenv
-
-      - name: Debug Telegram vars
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python3 debug_ci.py
-
-      - name: AI Security Decision
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python3 ai_security_advisor.py
 
       - name: Deploy to Kubernetes
         run: |
