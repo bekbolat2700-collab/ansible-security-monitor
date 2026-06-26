@@ -30,8 +30,7 @@ jobs:
           chmod +x tfsec
           sudo mv tfsec /usr/local/bin/tfsec
           tfsec --version
-        run: |
-          
+
 
       - name: Run tfsec scan
         run: |
