@@ -110,10 +110,17 @@ jobs:
 
       - name: Test Gatekeeper blocks bad deployment
         run: |
-          if kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1 | grep -q "denied"; then
+          echo "=== Gatekeeper pods ==="
+          kubectl get pods -n gatekeeper-system
+          echo "=== Constraints ==="
+          kubectl get k8snoprivilegeescalation || echo "Constraint not found"
+          echo "=== Attempting bad deployment ==="
+          RESULT=$(kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1)
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "denied"; then
             echo "✅ Gatekeeper correctly blocked bad deployment"
           else
-            echo "⚠️ Gatekeeper did not block — check constraint"
+            echo "⚠️ Gatekeeper did not block — constraint not active yet"
           fi
       - name: Deploy to Kubernetes
         run: |
