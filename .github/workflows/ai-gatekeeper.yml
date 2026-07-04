@@ -104,9 +104,13 @@ jobs:
       - name: Apply Gatekeeper Constraint
         run: |
           kubectl apply -f k8s/gatekeeper/constraint.yaml
-          echo "Waiting for Gatekeeper webhook to be ready..."
+          echo "Waiting for webhook to register..."
           sleep 30
-          kubectl get constraint
+          echo "=== Webhook config ==="
+          kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration -o jsonpath='{.webhooks[0].rules}' || echo "Webhook not ready"
+          echo "=== Constraint status ==="
+          kubectl get k8snoprivilegeescalation -o yaml | grep -A5 "status" || true
+          kubectl delete deployment bad-deployment --ignore-not-found=true -n default
 
       - name: Test Gatekeeper blocks bad deployment
         run: |
