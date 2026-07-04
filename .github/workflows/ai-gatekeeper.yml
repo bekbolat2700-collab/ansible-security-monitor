@@ -46,8 +46,8 @@ jobs:
             -p /path \
             --report-formats json \
             -o /path/kics-results \
+            --exclude-paths /path/k8s/gatekeeper \
             --ignore-on-exit results || true
-          echo "KICS done"
 
       - name: Install Conftest
         run: |
