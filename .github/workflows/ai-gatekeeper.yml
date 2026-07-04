@@ -96,12 +96,14 @@ jobs:
       - name: Apply Gatekeeper ConstraintTemplate
         run: |
           kubectl apply -f k8s/gatekeeper/constraint-template.yaml
-          sleep 10
+          sleep 15
 
       - name: Apply Gatekeeper Constraint
         run: |
           kubectl apply -f k8s/gatekeeper/constraint.yaml
-          sleep 5
+          echo "Waiting for Gatekeeper webhook to be ready..."
+          sleep 30
+          kubectl get constraint
 
       - name: Test Gatekeeper blocks bad deployment
         run: |
