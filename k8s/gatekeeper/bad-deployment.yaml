@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-app
+  template:
+    metadata:
+      labels:
+        app: bad-app
+    spec:
+      containers:
+      - name: bad-container
+        image: nginx:1.25
+        # No securityContext — Gatekeeper should block this

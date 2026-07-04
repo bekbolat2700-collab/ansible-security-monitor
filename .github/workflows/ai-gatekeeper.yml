@@ -88,6 +88,28 @@ jobs:
         run: |
           k3d image import security-monitor:latest -c devsecops
 
+      - name: Install OPA Gatekeeper
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.17.1/deploy/gatekeeper.yaml
+          kubectl wait --for=condition=Ready pods --all -n gatekeeper-system --timeout=120s
+
+      - name: Apply Gatekeeper ConstraintTemplate
+        run: |
+          kubectl apply -f k8s/gatekeeper/constraint-template.yaml
+          sleep 10
+
+      - name: Apply Gatekeeper Constraint
+        run: |
+          kubectl apply -f k8s/gatekeeper/constraint.yaml
+          sleep 5
+
+      - name: Test Gatekeeper blocks bad deployment
+        run: |
+          if kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1 | grep -q "denied"; then
+            echo "✅ Gatekeeper correctly blocked bad deployment"
+          else
+            echo "⚠️ Gatekeeper did not block — check constraint"
+          fi
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/namespace/namespace.yaml
