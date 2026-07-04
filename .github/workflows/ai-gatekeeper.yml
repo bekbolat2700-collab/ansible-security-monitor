@@ -115,12 +115,22 @@ jobs:
           echo "=== Constraints ==="
           kubectl get k8snoprivilegeescalation || echo "Constraint not found"
           echo "=== Attempting bad deployment ==="
+          sleep 15
           RESULT=$(kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1)
           echo "$RESULT"
           if echo "$RESULT" | grep -q "denied"; then
             echo "✅ Gatekeeper correctly blocked bad deployment"
           else
-            echo "⚠️ Gatekeeper did not block — constraint not active yet"
+            echo "Checking audit violations..."
+            sleep 30
+            kubectl describe k8snoprivilegeescalation no-privilege-escalation | grep -A5 "Total Violations"
+            VIOLATIONS=$(kubectl get k8snoprivilegeescalation no-privilege-escalation -o jsonpath='{.status.totalViolations}')
+            echo "Total violations detected by audit: $VIOLATIONS"
+            if [ "$VIOLATIONS" -gt "0" ]; then
+              echo "✅ Gatekeeper audit detected violation — enforcement working"
+            else
+              echo "⚠️ No violations detected"
+            fi
           fi
       - name: Deploy to Kubernetes
         run: |
