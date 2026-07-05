@@ -31,7 +31,6 @@ jobs:
           sudo mv tfsec /usr/local/bin/tfsec
           tfsec --version
 
-
       - name: Run tfsec scan
         run: |
           tfsec terraform/ --format text 2>&1 | tee tfsec-output.txt || true
@@ -62,6 +61,7 @@ jobs:
       - name: Run Conftest (Policy as Code)
         run: |
           conftest test --policy policy/ k8s/deployment/deployment.yaml rendered-helm.yaml
+
       - name: Install Python deps
         run: pip install requests python-dotenv
 
@@ -106,25 +106,27 @@ jobs:
           kubectl apply -f k8s/gatekeeper/constraint.yaml
           echo "Waiting for webhook to register..."
           sleep 30
-          echo "=== Webhook config ==="
-          kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration -o jsonpath='{.webhooks[0].rules}' || echo "Webhook not ready"
-          echo "=== Constraint status ==="
-          kubectl get k8snoprivilegeescalation -o yaml | grep -A5 "status" || true
-          kubectl delete deployment bad-deployment --ignore-not-found=true -n default
+          kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration -o jsonpath='{.webhooks[0].failurePolicy}'
+          echo ""
+          kubectl patch validatingwebhookconfiguration gatekeeper-validating-webhook-configuration \
+            --type='json' \
+            -p='[{"op":"replace","path":"/webhooks/0/failurePolicy","value":"Fail"}]'
+          echo "Webhook patched to Fail mode"
+          sleep 10
 
       - name: Test Gatekeeper blocks bad deployment
         run: |
-          echo "=== Constraint enforced, testing admission webhook ==="
+          echo "=== Testing Gatekeeper admission control ==="
           kubectl delete deployment bad-deployment --ignore-not-found=true -n default
-          sleep 5
+          sleep 3
           RESULT=$(kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1)
           echo "$RESULT"
           if echo "$RESULT" | grep -q "denied"; then
             echo "✅ Gatekeeper correctly blocked bad deployment"
           else
-            echo "⚠️ Gatekeeper did not block — deployment was allowed"
-            echo "Full output: $RESULT"
+            echo "⚠️ Gatekeeper did not block — output: $RESULT"
           fi
+
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/namespace/namespace.yaml
