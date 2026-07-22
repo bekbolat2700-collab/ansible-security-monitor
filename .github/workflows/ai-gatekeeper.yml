@@ -24,17 +24,10 @@ jobs:
           trivy fs . --severity HIGH,CRITICAL --format json -o trivy-report.json
           echo "Trivy done"
 
-      - name: Install tfsec
+      - name: Run Trivy config scan (replaces tfsec)
         run: |
-          curl -sL https://github.com/aquasecurity/tfsec/releases/download/v1.28.10/tfsec-linux-amd64 -o tfsec
-          chmod +x tfsec
-          sudo mv tfsec /usr/local/bin/tfsec
-          tfsec --version
-
-      - name: Run tfsec scan
-        run: |
-          tfsec terraform/ --format text 2>&1 | tee tfsec-output.txt || true
-          echo "tfsec done"
+          trivy config . --format json -o tfsec-output.txt || true
+          echo "Trivy config scan done"
 
       - name: Run KICS scan
         run: |
