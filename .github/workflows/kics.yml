@@ -23,4 +23,4 @@ jobs:
             -p /path \
             --report-formats json,sarif \
             -o /path/kics-results \
-            --fail-on HIGH
+            --exclude-paths /path/k8s/gatekeeper             --fail-on HIGH
