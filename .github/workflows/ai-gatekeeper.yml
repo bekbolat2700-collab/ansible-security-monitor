@@ -109,33 +109,16 @@ jobs:
 
       - name: Test Gatekeeper blocks bad deployment
         run: |
-          echo "=== Full webhook config ==="
-          kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration -o json | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-for w in d['webhooks']:
-    print('name:', w['name'])
-    print('failurePolicy:', w.get('failurePolicy'))
-    print('namespaceSelector:', w.get('namespaceSelector'))
-    print('rules:', json.dumps(w.get('rules',''), indent=2))
-"
-          echo "=== Constraint template status ==="
-          kubectl get constrainttemplate k8snoprivilegeescalation -o jsonpath='{.status.byPod[0].templateUID}'
-          echo ""
-          echo "=== Try applying bad pod directly ==="
-          cat << PODEOF | kubectl apply -f - 2>&1 || true
-apiVersion: v1
-kind: Pod
-metadata:
-  name: bad-pod
-  namespace: default
-spec:
-  containers:
-  - name: bad-container
-    image: nginx:1.25
-PODEOF
-          echo "=== Result above ==="
-          kubectl delete pod bad-pod --ignore-not-found=true
+          echo "=== Testing Gatekeeper ==="
+          kubectl delete deployment bad-deployment --ignore-not-found=true -n default
+          sleep 3
+          RESULT=$(kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1)
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "denied"; then
+            echo "✅ Gatekeeper correctly blocked bad deployment"
+          else
+            echo "⚠️ Gatekeeper did not block"
+          fi
 
       - name: Deploy to Kubernetes
         run: |
