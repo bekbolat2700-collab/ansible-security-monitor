@@ -96,14 +96,32 @@ def parse_kics_report(path="kics-results/results.json"):
 def parse_tfsec_output():
     high, medium = 0, 0
     findings = []
-    tfsec_output = os.getenv("TFSEC_OUTPUT", "")
-    for line in tfsec_output.splitlines():
-        if "HIGH" in line:
-            high += 1
-            findings.append({"source": "tfsec", "severity": "HIGH", "title": line.strip()[:120], "detail": "", "file": ""})
-        elif "MEDIUM" in line:
-            medium += 1
-            findings.append({"source": "tfsec", "severity": "MEDIUM", "title": line.strip()[:120], "detail": "", "file": ""})
+    try:
+        with open("tfsec-output.txt") as f:
+            data = json.load(f)
+        for result in data.get("Results", []):
+            for misconfig in result.get("Misconfigurations", []):
+                sev = misconfig.get("Severity", "").upper()
+                if sev == "HIGH":
+                    high += 1
+                    findings.append({
+                        "source": "trivy-config",
+                        "severity": "HIGH",
+                        "title": misconfig.get("Title", "Unknown")[:120],
+                        "detail": misconfig.get("Description", "")[:160],
+                        "file": result.get("Target", "")
+                    })
+                elif sev == "MEDIUM":
+                    medium += 1
+                    findings.append({
+                        "source": "trivy-config",
+                        "severity": "MEDIUM",
+                        "title": misconfig.get("Title", "Unknown")[:120],
+                        "detail": misconfig.get("Description", "")[:160],
+                        "file": result.get("Target", "")
+                    })
+    except Exception as e:
+        print(f"⚠️ Trivy config parse error: {e}")
     return high, medium, findings
 
 def build_findings_context(findings, max_items=10):
