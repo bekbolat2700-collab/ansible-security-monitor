@@ -26,7 +26,7 @@ jobs:
 
       - name: Run Trivy config scan (replaces tfsec)
         run: |
-          trivy config . --format json -o tfsec-output.txt || true
+          trivy config . --format json -o tfsec-output.txt --exit-code 0 || true
           echo "Trivy config scan done"
 
       - name: Run KICS scan

@@ -212,7 +212,7 @@ def main():
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔍 *Trivy*\n"
         f"  CRITICAL: {trivy_critical} | HIGH: {trivy_high}\n\n"
-        f"🔍 *tfsec*\n"
+        f"🔍 *Trivy Config*\n"
         f"  HIGH: {tfsec_high} | MEDIUM: {tfsec_medium}\n\n"
         f"🔍 *KICS*\n"
         f"  HIGH: {kics_high} | MEDIUM: {kics_medium} | LOW: {kics_low}\n"
