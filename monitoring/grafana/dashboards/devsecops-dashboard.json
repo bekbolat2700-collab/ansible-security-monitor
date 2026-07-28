@@ -8,19 +8,51 @@
       "id": 1,
       "title": "Pipeline Status",
       "type": "stat",
-      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
-      "targets": [{"expr": "security_pipeline_status", "datasource": {"type": "prometheus"}}],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "security_pipeline_status",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            {"type": "value", "options": {"0": {"text": "✅ PASSED", "color": "green"}}},
-            {"type": "value", "options": {"1": {"text": "❌ FAILED", "color": "red"}}}
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "\u2705 PASSED",
+                  "color": "green"
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "\u274c FAILED",
+                  "color": "red"
+                }
+              }
+            }
           ]
         }
       }
@@ -29,22 +61,46 @@
       "id": 2,
       "title": "HIGH Findings",
       "type": "stat",
-      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
-      "targets": [{"expr": "security_total_high", "datasource": {"type": "prometheus"}}],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "security_total_high",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              {"color": "green", "value": 0},
-              {"color": "red", "value": 1}
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           },
-          "color": {"mode": "thresholds"}
+          "color": {
+            "mode": "thresholds"
+          }
         }
       }
     },
@@ -52,23 +108,50 @@
       "id": 3,
       "title": "MEDIUM Findings",
       "type": "stat",
-      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
-      "targets": [{"expr": "security_total_medium", "datasource": {"type": "prometheus"}}],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "security_total_medium",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              {"color": "green", "value": 0},
-              {"color": "yellow", "value": 1},
-              {"color": "red", "value": 10}
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
             ]
           },
-          "color": {"mode": "thresholds"}
+          "color": {
+            "mode": "thresholds"
+          }
         }
       }
     },
@@ -76,24 +159,50 @@
       "id": 4,
       "title": "Findings by Scanner",
       "type": "bargauge",
-      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "targets": [
-        {"expr": "security_findings_total", "legendFormat": "{{scanner}} - {{severity}}", "datasource": {"type": "prometheus"}}
+        {
+          "expr": "security_findings_total",
+          "legendFormat": "{{scanner}} - {{severity}}",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
       ],
       "options": {
         "orientation": "horizontal",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              {"color": "green", "value": 0},
-              {"color": "yellow", "value": 1},
-              {"color": "red", "value": 5}
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           },
-          "color": {"mode": "thresholds"}
+          "color": {
+            "mode": "thresholds"
+          }
         }
       }
     },
@@ -101,19 +210,205 @@
       "id": 5,
       "title": "Security Trend",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
       "targets": [
-        {"expr": "security_total_high", "legendFormat": "HIGH", "datasource": {"type": "prometheus"}},
-        {"expr": "security_total_medium", "legendFormat": "MEDIUM", "datasource": {"type": "prometheus"}}
+        {
+          "expr": "security_total_high",
+          "legendFormat": "HIGH",
+          "datasource": {
+            "type": "prometheus"
+          }
+        },
+        {
+          "expr": "security_total_medium",
+          "legendFormat": "MEDIUM",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {"lineWidth": 2}
+          "custom": {
+            "lineWidth": 2
+          }
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "HIGH"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
-          {"matcher": {"id": "byName", "options": "MEDIUM"}, "properties": [{"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}}]}
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HIGH"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MEDIUM"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
         ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Critical Findings",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "expr": "security_critical_total",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Last Scan",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 16
+      },
+      "targets": [
+        {
+          "expr": "security_last_scan_timestamp",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Risk Score",
+      "type": "gauge",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "expr": "security_risk_score",
+          "datasource": {
+            "type": "prometheus"
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "minVizHeight": 75,
+        "minVizWidth": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percent"
+        }
       }
     }
   ],

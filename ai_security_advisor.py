@@ -148,6 +148,15 @@ def push_metrics_to_prometheus(trivy_high, trivy_critical, tfsec_high, tfsec_med
             "# HELP security_total_medium Total MEDIUM findings\n"
             "# TYPE security_total_medium gauge\n"
             f"security_total_medium {total_medium}\n"
+            "# HELP security_critical_total Total CRITICAL findings\n"
+            "# TYPE security_critical_total gauge\n"
+            f"security_critical_total {trivy_critical}\n"
+            "# HELP security_last_scan_timestamp Unix timestamp of last scan\n"
+            "# TYPE security_last_scan_timestamp gauge\n"
+            f"security_last_scan_timestamp {int(time.time())}\n"
+            "# HELP security_risk_score Overall risk score 0-100\n"
+            "# TYPE security_risk_score gauge\n"
+            f"security_risk_score {min(100, trivy_critical * 20 + total_high * 10 + total_medium * 3)}\n"
         )
         response = requests.post(
             f"{PUSHGATEWAY_URL}/metrics/job/devsecops_pipeline",
