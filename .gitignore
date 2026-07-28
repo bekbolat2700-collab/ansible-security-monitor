@@ -1,2 +1,7 @@
 vars.yml
 .env
+tfsec-output.txt
+trivy-report.json
+kics-results/
+*.save
+*.save.1
