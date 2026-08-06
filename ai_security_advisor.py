@@ -3,6 +3,7 @@ import json
 import time
 import requests
 import requests as req
+from mitre_mapping import get_mitre_info, format_mitre_for_telegram
 
 def get_vault_secrets():
     vault_addr = os.getenv("VAULT_ADDR", "http://127.0.0.1:8200")
@@ -177,7 +178,9 @@ def build_findings_context(findings, max_items=10):
     for i, f in enumerate(sorted_findings, 1):
         loc = f" ({f['file']})" if f.get("file") else ""
         detail = f" — {f['detail']}" if f.get("detail") else ""
-        lines.append(f"{i}. [{f['source']}][{f['severity']}] {f['title']}{loc}{detail}")
+        mitre = get_mitre_info(f['title'])
+        mitre_tag = f" | {mitre['tactic'].split(' - ')[0]} {mitre['technique'].split(' - ')[0]}"
+        lines.append(f"{i}. [{f['source']}][{f['severity']}] {f['title']}{loc}{detail}{mitre_tag}")
     return "\n".join(lines)
 
 def ask_groq_prioritized(findings_context, summary_counts):
@@ -263,6 +266,22 @@ def main():
         findings_context = build_findings_context(all_findings)
         ai_advice = ask_groq_prioritized(findings_context, summary_counts)
         summary += f"\n🤖 *AI Prioritized Findings:*\n{ai_advice}"
+
+        top_findings = sorted(
+            all_findings,
+            key=lambda f: SEVERITY_WEIGHT.get(f["severity"], 0),
+            reverse=True
+        )[:3]
+        if top_findings:
+            summary += "\n\n🗺️ *MITRE ATT\&CK Mapping:*\n"
+            for i, f in enumerate(top_findings, 1):
+                mitre = get_mitre_info(f["title"])
+                summary += (
+                    f"\n*{i}. {f['title']}*\n"
+                    f"  📍 `{mitre['tactic']}`\n"
+                    f"  🔧 `{mitre['technique']}`\n"
+                    f"  ✅ {mitre['action']}\n"
+                )
     elif total_high > 0 or total_medium > 0:
         summary += "\n🤖 *AI Advice:* Findings detected but details unavailable."
 
