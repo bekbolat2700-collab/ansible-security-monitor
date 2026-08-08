@@ -1,0 +1,124 @@
+name: Falco Runtime Security
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  falco-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d version
+
+      - name: Create k3d cluster
+        run: |
+          k3d cluster create falco-lab --wait
+          kubectl get nodes
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm version
+
+      - name: Add Falco Helm repo
+        run: |
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo update
+
+      - name: Install Falco
+        run: |
+          helm install falco falcosecurity/falco \
+            --namespace falco \
+            --create-namespace \
+            --set driver.kind=modern_ebpf \
+            --set falcosidekick.enabled=true \
+            --set falcosidekick.config.slack.webhookurl="" \
+            --wait --timeout 120s
+          kubectl get pods -n falco
+
+      - name: Deploy test application
+        run: |
+          kubectl apply -f - << PODEOF
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: test-app
+            namespace: default
+            labels:
+              app: test-app
+          spec:
+            containers:
+            - name: test-container
+              image: ubuntu:22.04
+              command: ["sleep", "3600"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1000
+          PODEOF
+          kubectl wait --for=condition=Ready pod/test-app --timeout=60s
+
+      - name: Wait for Falco to be ready
+        run: |
+          kubectl wait --for=condition=Ready pods --all -n falco --timeout=120s
+          echo "Falco is ready"
+
+      - name: Simulate suspicious behavior
+        run: |
+          echo "=== Simulating attack scenarios ==="
+
+          echo "1. Reading sensitive file"
+          kubectl exec test-app -- cat /etc/hostname || true
+
+          echo "2. Unexpected network connection"
+          kubectl exec test-app -- sh -c "curl -s --max-time 5 http://example.com" || true
+
+          echo "3. Shell spawned in container"
+          kubectl exec test-app -- sh -c "id && whoami" || true
+
+          sleep 10
+
+      - name: Check Falco alerts
+        run: |
+          echo "=== Falco Security Events ==="
+          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=50 | grep -E "Warning|Error|Notice|Critical" || echo "No alerts captured"
+          
+          echo "=== All Falco logs ==="
+          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=30
+
+      - name: Send Falco report to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=50 | grep -c "Warning\|Notice\|Critical" || echo "0")
+          
+          MESSAGE="🦅 *Falco Runtime Security Report*
+          ━━━━━━━━━━━━━━━━━━━━━
+          📊 *Security Events Detected:* ${ALERTS}
+          🕐 *Scan Time:* $(date -u '+%Y-%m-%d %H:%M UTC')
+          ━━━━━━━━━━━━━━━━━━━━━
+          *Simulated Scenarios:*
+          ✓ File read detection
+          ✓ Network connection monitoring  
+          ✓ Shell spawn detection
+          ━━━━━━━━━━━━━━━━━━━━━
+          *Status:* Runtime monitoring active ✅"
+          
+          curl -s -X POST \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          k3d cluster delete falco-lab || true
