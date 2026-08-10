@@ -1,0 +1,79 @@
+- rule: Shell Spawned in Container
+  desc: Detects shell execution inside a container — potential attacker activity
+  condition: >
+    spawned_process and
+    container and
+    (proc.name in (shell_binaries) or
+     proc.name in (bash, sh, zsh, dash, ash))
+  output: >
+    🚨 Shell spawned in container
+    (user=%user.name user_uid=%user.uid
+     container=%container.name
+     image=%container.image.repository:%container.image.tag
+     command=%proc.cmdline
+     parent=%proc.pname)
+  priority: WARNING
+  tags: [container, shell, mitre_execution, T1059]
+
+- rule: Read Sensitive File in Container
+  desc: Detects reading /etc/shadow, /etc/passwd or other sensitive files
+  condition: >
+    open_read and
+    container and
+    fd.name in (/etc/shadow, /etc/passwd, /etc/sudoers, /root/.ssh/id_rsa)
+  output: >
+    🔐 Sensitive file read in container
+    (user=%user.name
+     file=%fd.name
+     container=%container.name
+     image=%container.image.repository:%container.image.tag
+     command=%proc.cmdline)
+  priority: CRITICAL
+  tags: [container, credentials, mitre_credential_access, T1552]
+
+- rule: Unexpected Outbound Network Connection
+  desc: Detects unexpected outbound connections from containers
+  condition: >
+    outbound and
+    container and
+    not (proc.name in (nginx, node, python3, java)) and
+    proc.name in (curl, wget, nc, ncat, netcat)
+  output: >
+    🌐 Unexpected network tool in container
+    (user=%user.name
+     process=%proc.name
+     container=%container.name
+     image=%container.image.repository:%container.image.tag
+     connection=%fd.name)
+  priority: WARNING
+  tags: [container, network, mitre_exfiltration, T1048]
+
+- rule: Package Management in Container
+  desc: Detects apt/yum/pip usage inside running container
+  condition: >
+    spawned_process and
+    container and
+    proc.name in (apt, apt-get, yum, dnf, pip, pip3, npm)
+  output: >
+    📦 Package manager executed in container
+    (user=%user.name
+     process=%proc.name
+     container=%container.name
+     command=%proc.cmdline)
+  priority: NOTICE
+  tags: [container, package_management, mitre_persistence, T1072]
+
+- rule: Write Binary Directory
+  desc: Detects writing to /bin, /sbin, /usr/bin — possible backdoor installation
+  condition: >
+    open_write and
+    container and
+    (fd.directory in (/bin, /sbin, /usr/bin, /usr/sbin))
+  output: >
+    ⚠️ Write to binary directory in container
+    (user=%user.name
+     file=%fd.name
+     container=%container.name
+     command=%proc.cmdline)
+  priority: ERROR
+  tags: [container, filesystem, mitre_persistence, T1036]
