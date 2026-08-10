@@ -32,93 +32,77 @@ jobs:
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
 
-      - name: Install Falco
+      - name: Install Falco with custom rules
         run: |
           helm install falco falcosecurity/falco \
             --namespace falco \
             --create-namespace \
             --set driver.kind=modern_ebpf \
-            --set falcosidekick.enabled=true \
-            --set falcosidekick.config.slack.webhookurl="" \
-            --wait --timeout 120s
+            --set-file 'customRules.custom-rules\.yaml=falco/falco-custom-rules.yaml' \
+            --wait --timeout 180s
           kubectl get pods -n falco
 
-      - name: Deploy test application
+      - name: Deploy test pod
         run: |
-          kubectl apply -f - << PODEOF
-          apiVersion: v1
-          kind: Pod
-          metadata:
-            name: test-app
-            namespace: default
-            labels:
-              app: test-app
-          spec:
-            containers:
-            - name: test-container
-              image: ubuntu:22.04
-              command: ["sleep", "3600"]
-              securityContext:
-                allowPrivilegeEscalation: false
-                runAsNonRoot: true
-                runAsUser: 1000
-          PODEOF
-          kubectl wait --for=condition=Ready pod/test-app --timeout=60s
+          kubectl run victim-pod --image=ubuntu:22.04 --restart=Never -- sleep 3600
+          kubectl wait --for=condition=Ready pod/victim-pod --timeout=60s
+          echo "Pod ready"
 
-      - name: Wait for Falco to be ready
+      - name: Wait for Falco
         run: |
           kubectl wait --for=condition=Ready pods --all -n falco --timeout=120s
-          echo "Falco is ready"
+          sleep 15
+          echo "Falco ready"
 
-      - name: Simulate suspicious behavior
+      - name: Simulate Attack Scenarios
         run: |
-          echo "=== Simulating attack scenarios ==="
+          echo "=== Attack Simulation ==="
 
-          echo "1. Reading sensitive file"
-          kubectl exec test-app -- cat /etc/hostname || true
+          echo "1. Shell spawned T1059"
+          kubectl exec victim-pod -- bash -c "id && whoami && ls -la /etc" || true
+          sleep 5
 
-          echo "2. Unexpected network connection"
-          kubectl exec test-app -- sh -c "curl -s --max-time 5 http://example.com" || true
+          echo "2. Read sensitive file T1552"
+          kubectl exec victim-pod -- bash -c "cat /etc/passwd" || true
+          sleep 5
 
-          echo "3. Shell spawned in container"
-          kubectl exec test-app -- sh -c "id && whoami" || true
+          echo "3. Package manager T1072"
+          kubectl exec victim-pod -- bash -c "apt-get update -q" || true
+          sleep 15
 
-          sleep 10
-
-      - name: Check Falco alerts
+      - name: Collect Falco Alerts
         run: |
           echo "=== Falco Security Events ==="
-          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=50 | grep -E "Warning|Error|Notice|Critical" || echo "No alerts captured"
-          
-          echo "=== All Falco logs ==="
-          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=30
+          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100
 
-      - name: Send Falco report to Telegram
+      - name: Send Report to Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=50 | grep -c "Warning\|Notice\|Critical" || echo "0")
-          
-          MESSAGE="🦅 *Falco Runtime Security Report*
-          ━━━━━━━━━━━━━━━━━━━━━
-          📊 *Security Events Detected:* ${ALERTS}
-          🕐 *Scan Time:* $(date -u '+%Y-%m-%d %H:%M UTC')
-          ━━━━━━━━━━━━━━━━━━━━━
-          *Simulated Scenarios:*
-          ✓ File read detection
-          ✓ Network connection monitoring  
-          ✓ Shell spawn detection
-          ━━━━━━━━━━━━━━━━━━━━━
-          *Status:* Runtime monitoring active ✅"
-          
+          ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Warning\|Notice\|Critical\|WARNING\|NOTICE\|CRITICAL" || echo "0")
+          SHELL_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Shell spawned\|shell\|bash" || echo "0")
+          CRED_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Sensitive file\|passwd\|shadow" || echo "0")
+          NET_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "network\|curl\|wget" || echo "0")
+          PKG_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "apt\|yum\|pip" || echo "0")
+
           curl -s -X POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${MESSAGE}" \
-            -d "parse_mode=Markdown"
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="Markdown" \
+            --data-urlencode text="🦅 *Falco Runtime Security Report*
+          ━━━━━━━━━━━━━━━━━━━━━
+          📊 *Total Security Events:* ${ALERTS}
+          ━━━━━━━━━━━━━━━━━━━━━
+          🔍 *By MITRE Technique:*
+          🐚 T1059 Shell Execution: ${SHELL_ALERTS}
+          🔐 T1552 Credential Access: ${CRED_ALERTS}
+          🌐 T1048 Network Exfiltration: ${NET_ALERTS}
+          📦 T1072 Package Management: ${PKG_ALERTS}
+          ━━━━━━━━━━━━━━━━━━━━━
+          🕐 Scan: $(date -u '+%Y-%m-%d %H:%M UTC')
+          ✅ Runtime monitoring active"
 
       - name: Cleanup
         if: always()
-        run: |
-          k3d cluster delete falco-lab || true
+        run: k3d cluster delete falco-lab || true
