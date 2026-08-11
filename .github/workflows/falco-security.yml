@@ -80,11 +80,12 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Warning\|Notice\|Critical\|WARNING\|NOTICE\|CRITICAL" || echo "0")
-          SHELL_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Shell spawned\|shell\|bash" || echo "0")
-          CRED_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "Sensitive file\|passwd\|shadow" || echo "0")
-          NET_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "network\|curl\|wget" || echo "0")
-          PKG_ALERTS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=100 | grep -c "apt\|yum\|pip" || echo "0")
+          FALCO_LOGS=$(kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=200 2>/dev/null)
+          SHELL_ALERTS=$(echo "$FALCO_LOGS" | grep -i "shell spawned\|Shell Spawned" | wc -l)
+          CRED_ALERTS=$(echo "$FALCO_LOGS" | grep -i "sensitive file\|Read Sensitive" | wc -l)
+          NET_ALERTS=$(echo "$FALCO_LOGS" | grep -i "Unexpected Outbound\|network tool" | wc -l)
+          PKG_ALERTS=$(echo "$FALCO_LOGS" | grep -i "Package manager\|package management" | wc -l)
+          ALERTS=$((SHELL_ALERTS + CRED_ALERTS + NET_ALERTS + PKG_ALERTS))
 
           curl -s -X POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
