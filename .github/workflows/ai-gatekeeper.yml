@@ -136,7 +136,19 @@ jobs:
           kubectl apply -f k8s/service/service.yaml
           kubectl apply -f k8s/network-policy/network-policy.yaml
           kubectl get all -n security-monitor
-          kubectl wait --for=condition=Ready pod -l app=security-monitor -n security-monitor --timeout=90s
+
+          if ! kubectl wait --for=condition=Ready pod -l app=security-monitor -n security-monitor --timeout=90s; then
+            echo "::error::security-monitor pod did not become Ready — dumping diagnostics"
+            echo "=== kubectl get pods -o wide ==="
+            kubectl get pods -n security-monitor -o wide
+            echo "=== kubectl describe pod ==="
+            kubectl describe pods -n security-monitor -l app=security-monitor
+            echo "=== kubectl get events ==="
+            kubectl get events -n security-monitor --sort-by='.lastTimestamp'
+            echo "=== kubectl logs (container may not have started) ==="
+            kubectl logs -n security-monitor -l app=security-monitor --all-containers --tail=200 || true
+            exit 1
+          fi
 
       - name: Install Falco (watching the real security-monitor workload)
         run: |
