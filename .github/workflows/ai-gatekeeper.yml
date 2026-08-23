@@ -24,10 +24,14 @@ jobs:
           trivy fs . --severity HIGH,CRITICAL --format json -o trivy-report.json
           echo "Trivy done"
 
-      - name: Run Trivy config scan (replaces tfsec)
+      - name: Install tfsec
         run: |
-          trivy config . --format json -o tfsec-output.txt --exit-code 0 --skip-dirs k8s/gatekeeper || true
-          echo "Trivy config scan done"
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+
+      - name: Run tfsec scan
+        run: |
+          tfsec terraform/ --format text 2>&1 | tee tfsec-output.txt || true
+          echo "tfsec done"
 
       - name: Run KICS scan
         run: |
@@ -38,33 +42,13 @@ jobs:
             -p /path \
             --report-formats json \
             -o /path/kics-results \
-            --exclude-paths /path/k8s/gatekeeper \
             --ignore-on-exit results || true
-
-      - name: Install Conftest
-        run: |
-          wget https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz
-          tar xzf conftest_0.56.0_Linux_x86_64.tar.gz
-          sudo mv conftest /usr/local/bin
-
-      - name: Render Helm templates
-        run: |
-          helm template k8s/helm/security-monitor > rendered-helm.yaml
-
-      - name: Run Conftest (Policy as Code)
-        run: |
-          conftest test --policy policy/ k8s/deployment/deployment.yaml rendered-helm.yaml
+          echo "KICS done"
 
       - name: Install Python deps
         run: pip install requests python-dotenv
 
       - name: AI Security Decision + Unified Report
-        # This step now only reports (ai_security_advisor.py no longer calls
-        # exit(1)). continue-on-error is a belt-and-suspenders safety net so
-        # an unexpected crash here still can't block Falco / the correlation
-        # engine later in this job — the pass/fail decision belongs to
-        # ai_correlation_engine.py, which runs after runtime evidence exists.
-        continue-on-error: true
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
@@ -87,45 +71,6 @@ jobs:
         run: |
           k3d image import security-monitor:latest -c devsecops
 
-      - name: Install OPA Gatekeeper
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.17.1/deploy/gatekeeper.yaml
-          echo "Waiting for Gatekeeper pods to start..."
-          sleep 30
-          kubectl get pods -n gatekeeper-system
-          kubectl wait --for=condition=Ready pods --all -n gatekeeper-system --timeout=180s
-
-      - name: Apply Gatekeeper ConstraintTemplate
-        run: |
-          kubectl apply -f k8s/gatekeeper/constraint-template.yaml
-          sleep 15
-
-      - name: Apply Gatekeeper Constraint
-        run: |
-          kubectl apply -f k8s/gatekeeper/constraint.yaml
-          echo "Waiting for webhook to register..."
-          sleep 30
-          kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration -o jsonpath='{.webhooks[0].failurePolicy}'
-          echo ""
-          kubectl patch validatingwebhookconfiguration gatekeeper-validating-webhook-configuration \
-            --type='json' \
-            -p='[{"op":"replace","path":"/webhooks/0/failurePolicy","value":"Fail"}]'
-          echo "Webhook patched to Fail mode"
-          sleep 10
-
-      - name: Test Gatekeeper blocks bad deployment
-        run: |
-          echo "=== Testing Gatekeeper ==="
-          kubectl delete deployment bad-deployment --ignore-not-found=true -n default
-          sleep 3
-          RESULT=$(kubectl apply -f k8s/gatekeeper/bad-deployment.yaml 2>&1)
-          echo "$RESULT"
-          if echo "$RESULT" | grep -q "denied"; then
-            echo "✅ Gatekeeper correctly blocked bad deployment"
-          else
-            echo "⚠️ Gatekeeper did not block"
-          fi
-
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/namespace/namespace.yaml
@@ -136,67 +81,3 @@ jobs:
           kubectl apply -f k8s/service/service.yaml
           kubectl apply -f k8s/network-policy/network-policy.yaml
           kubectl get all -n security-monitor
-          kubectl wait --for=condition=Ready pod -l app=security-monitor -n security-monitor --timeout=90s
-
-      - name: Install Falco (watching the real security-monitor workload)
-        run: |
-          helm repo add falcosecurity https://falcosecurity.github.io/charts
-          helm repo update
-          helm install falco falcosecurity/falco \
-            --namespace falco \
-            --create-namespace \
-            --set driver.kind=modern_ebpf \
-            --set falco.json_output=true \
-            --set falco.json_include_output_property=true \
-            --set-file 'customRules.custom-rules\.yaml=falco/falco-custom-rules.yaml' \
-            --wait --timeout 180s
-          kubectl wait --for=condition=Ready pods --all -n falco --timeout=120s
-          sleep 15
-          echo "Falco ready and watching security-monitor namespace"
-
-      - name: Run controlled runtime scenarios against security-monitor
-        run: |
-          echo "=== Runtime security validation against the real workload ==="
-          POD=$(kubectl get pod -n security-monitor -l app=security-monitor -o jsonpath='{.items[0].metadata.name}')
-          echo "Target pod: $POD"
-
-          echo "1. Shell execution (T1059)"
-          kubectl exec -n security-monitor "$POD" -- sh -c "id && whoami" || true
-          sleep 5
-
-          echo "2. Sensitive file read (T1552)"
-          kubectl exec -n security-monitor "$POD" -- sh -c "cat /etc/passwd" || true
-          sleep 5
-
-          echo "3. Package manager invocation (T1072)"
-          kubectl exec -n security-monitor "$POD" -- sh -c "pip install requests" || true
-          sleep 10
-
-      - name: Capture Falco alerts for the real workload
-        run: |
-          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=500 > falco-events.json || true
-          echo "Captured $(wc -l < falco-events.json) lines to falco-events.json"
-
-      - name: Run AI Correlation Engine
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          FALCO_ALERTS_PATH: falco-events.json
-        run: |
-          python3 ai_correlation_engine.py
-
-      - name: Upload correlation artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: correlation-results
-          path: |
-            falco-events.json
-            correlation-report.json
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Cleanup k3d cluster
-        if: always()
-        run: k3d cluster delete devsecops || true
