@@ -214,7 +214,11 @@ def ask_groq_prioritized(findings_context, summary_counts):
     }
     try:
         response = requests.post(url, headers=headers, json=payload)
-        return response.json()["choices"][0]["message"]["content"]
+        data = response.json()
+        if "choices" not in data:
+            print(f"⚠️ Groq API error {response.status_code}: {data}")
+            return f"AI advice unavailable — Groq returned: {data.get('error', {}).get('message', data)}"
+        return data["choices"][0]["message"]["content"]
     except Exception as e:
         return f"AI advice error: {e}"
 
@@ -292,8 +296,11 @@ def main():
         kics_high, kics_medium, kics_low, total_high, total_medium, status
     )
 
-    if total_high > 0:
-        exit(1)
+    # NOTE: this used to `exit(1)` here on any HIGH+ finding, which killed
+    # the whole job before Falco/the correlation engine ever ran. The
+    # pipeline's pass/fail decision now belongs to ai_correlation_engine.py,
+    # which runs at the end of the job once build-time AND runtime evidence
+    # are both available. This script stays a reporter.
 
 if __name__ == "__main__":
     main()

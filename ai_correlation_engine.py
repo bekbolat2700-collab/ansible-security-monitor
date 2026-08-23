@@ -291,7 +291,11 @@ def ask_groq_correlation(context):
     }
     try:
         response = requests.post(url, headers=headers, json=payload)
-        return response.json()["choices"][0]["message"]["content"]
+        data = response.json()
+        if "choices" not in data:
+            print(f"⚠️ Groq API error {response.status_code}: {data}")
+            return f"AI correlation narrative unavailable — Groq returned: {data.get('error', {}).get('message', data)}"
+        return data["choices"][0]["message"]["content"]
     except Exception as e:
         return f"AI correlation error: {e}"
 

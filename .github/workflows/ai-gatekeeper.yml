@@ -59,6 +59,12 @@ jobs:
         run: pip install requests python-dotenv
 
       - name: AI Security Decision + Unified Report
+        # This step now only reports (ai_security_advisor.py no longer calls
+        # exit(1)). continue-on-error is a belt-and-suspenders safety net so
+        # an unexpected crash here still can't block Falco / the correlation
+        # engine later in this job — the pass/fail decision belongs to
+        # ai_correlation_engine.py, which runs after runtime evidence exists.
+        continue-on-error: true
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
