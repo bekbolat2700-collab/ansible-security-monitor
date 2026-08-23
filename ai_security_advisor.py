@@ -273,7 +273,7 @@ def main():
             reverse=True
         )[:3]
         if top_findings:
-            summary += "\n\n🗺️ *MITRE ATT\&CK Mapping:*\n"
+            summary += "\n\n🗺️ *MITRE ATT&CK Mapping:*\n"
             for i, f in enumerate(top_findings, 1):
                 mitre = get_mitre_info(f["title"])
                 summary += (

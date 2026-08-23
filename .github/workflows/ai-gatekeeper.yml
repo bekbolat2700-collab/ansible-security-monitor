@@ -130,3 +130,67 @@ jobs:
           kubectl apply -f k8s/service/service.yaml
           kubectl apply -f k8s/network-policy/network-policy.yaml
           kubectl get all -n security-monitor
+          kubectl wait --for=condition=Ready pod -l app=security-monitor -n security-monitor --timeout=90s
+
+      - name: Install Falco (watching the real security-monitor workload)
+        run: |
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo update
+          helm install falco falcosecurity/falco \
+            --namespace falco \
+            --create-namespace \
+            --set driver.kind=modern_ebpf \
+            --set falco.json_output=true \
+            --set falco.json_include_output_property=true \
+            --set-file 'customRules.custom-rules\.yaml=falco/falco-custom-rules.yaml' \
+            --wait --timeout 180s
+          kubectl wait --for=condition=Ready pods --all -n falco --timeout=120s
+          sleep 15
+          echo "Falco ready and watching security-monitor namespace"
+
+      - name: Run controlled runtime scenarios against security-monitor
+        run: |
+          echo "=== Runtime security validation against the real workload ==="
+          POD=$(kubectl get pod -n security-monitor -l app=security-monitor -o jsonpath='{.items[0].metadata.name}')
+          echo "Target pod: $POD"
+
+          echo "1. Shell execution (T1059)"
+          kubectl exec -n security-monitor "$POD" -- sh -c "id && whoami" || true
+          sleep 5
+
+          echo "2. Sensitive file read (T1552)"
+          kubectl exec -n security-monitor "$POD" -- sh -c "cat /etc/passwd" || true
+          sleep 5
+
+          echo "3. Package manager invocation (T1072)"
+          kubectl exec -n security-monitor "$POD" -- sh -c "pip install requests" || true
+          sleep 10
+
+      - name: Capture Falco alerts for the real workload
+        run: |
+          kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=500 > falco-events.json || true
+          echo "Captured $(wc -l < falco-events.json) lines to falco-events.json"
+
+      - name: Run AI Correlation Engine
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          FALCO_ALERTS_PATH: falco-events.json
+        run: |
+          python3 ai_correlation_engine.py
+
+      - name: Upload correlation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: correlation-results
+          path: |
+            falco-events.json
+            correlation-report.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Cleanup k3d cluster
+        if: always()
+        run: k3d cluster delete devsecops || true
