@@ -14,9 +14,6 @@ spec:
     metadata:
       labels:
         app: {{ .Values.app.name }}
-      annotations:
-        seccomp.security.alpha.kubernetes.io/pod: runtime/default
-        container.apparmor.security.beta.kubernetes.io/{{ .Values.app.name }}: runtime/default
     spec:
       serviceAccountName: {{ .Values.app.name }}-sa
       automountServiceAccountToken: false

@@ -14,9 +14,6 @@ spec:
     metadata:
       labels:
         app: security-monitor
-      annotations:
-        seccomp.security.alpha.kubernetes.io/pod: runtime/default
-        container.apparmor.security.beta.kubernetes.io/security-monitor: runtime/default
     spec:
       serviceAccountName: security-monitor-sa
       automountServiceAccountToken: false
