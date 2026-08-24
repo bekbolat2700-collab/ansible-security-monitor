@@ -7,12 +7,16 @@
     tg_chat_id: "{{ lookup('env', 'TG_CHAT_ID') }}"
   tasks:
     - name: "Check RAM Usage"
-      ansible.builtin.shell: "free -m | awk 'NR==2{printf \"Memory Usage: %s/%sMB (%.2f%%)\\n\", $3,$2,$3*100/$2 }'"
+      ansible.builtin.shell: "set -o pipefail && free -m | awk 'NR==2{printf \"Memory Usage: %s/%sMB (%.2f%%)\\n\", $3,$2,$3*100/$2 }'"
+      args:
+        executable: /bin/bash
       register: mem_usage
       changed_when: false
 
     - name: "Check Disk Usage"
-      ansible.builtin.shell: "df -h / | awk 'NR==2 {print $5}'"
+      ansible.builtin.shell: "set -o pipefail && df -h / | awk 'NR==2 {print $5}'"
+      args:
+        executable: /bin/bash
       register: disk_pcent
       changed_when: false
 
