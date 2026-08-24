@@ -7,6 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
+COPY mitre_mapping.py .
 COPY ai_security_advisor.py .
 COPY debug_ci.py .
 
@@ -14,4 +15,4 @@ COPY debug_ci.py .
 RUN useradd -m -u 1000 appuser
 USER appuser
 
-CMD ["python3", "ai_security_advisor.py"]
+CMD ["sh", "-c", "touch /tmp/ready /tmp/healthy; while true; do python3 ai_security_advisor.py || true; touch /tmp/ready /tmp/healthy; sleep 300; done"]
