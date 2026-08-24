@@ -16,11 +16,11 @@
   tags: [container, shell, mitre_execution, T1059]
 
 - rule: Read Sensitive File in Container
-  desc: Detects reading /etc/shadow, /etc/passwd or other sensitive files
+  desc: Detects reading /etc/shadow or other genuinely sensitive credential files
   condition: >
     open_read and
     container and
-    fd.name in (/etc/shadow, /etc/passwd, /etc/sudoers, /root/.ssh/id_rsa)
+    fd.name in (/etc/shadow, /etc/sudoers, /root/.ssh/id_rsa)
   output: >
     🔐 Sensitive file read in container
     (user=%user.name

@@ -176,8 +176,8 @@ jobs:
           kubectl exec -n security-monitor "$POD" -- sh -c "id && whoami" || true
           sleep 5
 
-          echo "2. Sensitive file read (T1552)"
-          kubectl exec -n security-monitor "$POD" -- sh -c "cat /etc/passwd" || true
+          echo "2. Sensitive file read attempt (T1552)"
+          kubectl exec -n security-monitor "$POD" -- sh -c "cat /etc/shadow" || true
           sleep 5
 
           echo "3. Package manager invocation (T1072)"

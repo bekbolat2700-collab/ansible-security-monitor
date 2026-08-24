@@ -194,7 +194,7 @@ def ask_groq_prioritized(findings_context, summary_counts):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "messages": [
             {
                 "role": "system",
