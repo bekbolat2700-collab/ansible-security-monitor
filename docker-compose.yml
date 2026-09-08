@@ -38,8 +38,10 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: "devsecops"
-      GF_SECURITY_ADMIN_USER: "admin"
+      # Set GF_SECURITY_ADMIN_PASSWORD in a local .env file (gitignored) — see .env.example.
+      # No fallback here on purpose: an unset password should fail loudly, not default to something guessable.
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD}"
+      GF_SECURITY_ADMIN_USER: "${GF_SECURITY_ADMIN_USER:-admin}"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
