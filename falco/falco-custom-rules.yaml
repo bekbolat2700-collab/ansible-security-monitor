@@ -31,6 +31,28 @@
   priority: CRITICAL
   tags: [container, credentials, mitre_credential_access, T1552]
 
+- rule: Failed Sensitive File Access Attempt
+  desc: >
+    Detects failed attempts to open genuinely sensitive files. Access was
+    denied (hardening worked), but the attempt itself is a signal worth
+    surfacing separately from a successful read — same risk category,
+    lower confidence, since no data was actually exposed.
+  condition: >
+    evt.type in (open, openat, openat2) and
+    container and
+    fd.typechar='f' and fd.num=-1 and evt.res startswith E and
+    fd.name in (/etc/shadow, /etc/sudoers, /root/.ssh/id_rsa)
+  output: >
+    🚫 Failed attempt to access sensitive file in container
+    (user=%user.name
+     file=%fd.name
+     result=%evt.res
+     container=%container.name
+     image=%container.image.repository:%container.image.tag
+     command=%proc.cmdline)
+  priority: WARNING
+  tags: [container, credentials, mitre_credential_access, T1552]
+
 - rule: Unexpected Outbound Network Connection
   desc: Detects outbound connections made via common exfiltration/attacker tooling
   condition: >
