@@ -184,6 +184,10 @@ jobs:
           kubectl exec -n security-monitor "$POD" -- sh -c "pip install requests" || true
           sleep 10
 
+          echo "4. Outbound connection via exfiltration-style tooling (T1048)"
+          kubectl exec -n security-monitor "$POD" -- sh -c "curl -s --max-time 5 -o /dev/null -w '%{http_code}' https://example.com" || true
+          sleep 5
+
       - name: Capture Falco alerts for the real workload
         run: |
           kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=500 > falco-events.json || true

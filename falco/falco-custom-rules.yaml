@@ -32,11 +32,10 @@
   tags: [container, credentials, mitre_credential_access, T1552]
 
 - rule: Unexpected Outbound Network Connection
-  desc: Detects unexpected outbound connections from containers
+  desc: Detects outbound connections made via common exfiltration/attacker tooling
   condition: >
     outbound and
     container and
-    not (proc.name in (nginx, node, python3, java)) and
     proc.name in (curl, wget, nc, ncat, netcat)
   output: >
     🌐 Unexpected network tool in container
