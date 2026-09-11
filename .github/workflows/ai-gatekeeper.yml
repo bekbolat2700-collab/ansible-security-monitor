@@ -83,9 +83,26 @@ jobs:
           k3d cluster create devsecops --wait
           kubectl get nodes
 
-      - name: Import image to k3d
+      - name: Import image to k3d (verified, with retry)
         run: |
-          k3d image import security-monitor:latest security-monitor:1.0.0 -c devsecops
+          NODE="k3d-devsecops-server-0"
+          for attempt in 1 2 3; do
+            echo "=== Import attempt $attempt/3 ==="
+            k3d image import security-monitor:latest security-monitor:1.0.0 -c devsecops
+            sleep 3
+
+            if docker exec "$NODE" crictl images 2>/dev/null | grep -q security-monitor; then
+              echo "✅ security-monitor image confirmed present on $NODE"
+              docker exec "$NODE" crictl images | grep security-monitor
+              exit 0
+            fi
+
+            echo "⚠️ Image not found on $NODE after attempt $attempt — k3d likely hit its known tools-node import race. Retrying..."
+            sleep 5
+          done
+
+          echo "::error::security-monitor image never appeared on $NODE after 3 import attempts"
+          exit 1
 
       - name: Install OPA Gatekeeper
         run: |
