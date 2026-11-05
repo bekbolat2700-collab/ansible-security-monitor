@@ -1,0 +1,47 @@
+---
+- name: Send system health to Telegram
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    tg_token: "{{ lookup('ansible.builtin.env', 'TG_TOKEN') }}"
+    tg_chat_id: "{{ lookup('ansible.builtin.env', 'TG_CHAT_ID') }}"
+    mem_warn_pct: 90
+    disk_warn_pct: 85
+  tasks:
+    - name: Require Telegram credentials
+      ansible.builtin.assert:
+        that:
+          - tg_token | length > 0
+          - tg_chat_id | length > 0
+        fail_msg: "TG_TOKEN and TG_CHAT_ID must be set in the environment"
+        quiet: true
+
+    - name: Compute health from real data
+      ansible.builtin.set_fact:
+        mem_used_pct: >-
+          {{ (ansible_facts['memory_mb']['nocache']['used']
+          / ansible_facts['memory_mb']['real']['total'] * 100) | round(1) }}
+        disk_used_pct: >-
+          {{ ((1 - (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first).size_available
+          / (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first).size_total) * 100) | round(1) }}
+
+    - name: Decide status from thresholds
+      ansible.builtin.set_fact:
+        health_status: >-
+          {{ '✅ В норме' if (mem_used_pct | float < mem_warn_pct) and (disk_used_pct | float < disk_warn_pct)
+          else '⚠️ Превышен порог' }}
+
+    - name: Send message to Telegram
+      community.general.telegram:
+        token: "{{ tg_token }}"
+        api_args:
+          chat_id: "{{ tg_chat_id }}"
+          parse_mode: Markdown
+          text: |
+            *🚀 Отчет по системе*
+            📊 *Память:* {{ mem_used_pct }}% (порог {{ mem_warn_pct }}%)
+            💾 *Диск:* {{ disk_used_pct }}% (порог {{ disk_warn_pct }}%)
+            🛡️ *Статус:* {{ health_status }}
+      no_log: true
+      when: not ansible_check_mode

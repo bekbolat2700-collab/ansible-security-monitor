@@ -1,0 +1,3 @@
+---
+# Strict by default: no warn-list, no skip-list.
+profile: production
