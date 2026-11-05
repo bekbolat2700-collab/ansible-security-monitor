@@ -12,7 +12,7 @@
     audit_strict: false
   tasks:
     - name: Find world-writable files
-      ansible.builtin.command:
+      command:
         argv: "{{ ['find'] + audit_paths + ['-xdev', '-type', 'f', '-perm', '-0002', '-print'] }}"
       register: world_writable
       changed_when: false
