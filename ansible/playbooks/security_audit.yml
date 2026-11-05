@@ -1,0 +1,71 @@
+---
+- name: Security and performance audit (read-only)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    # Least privilege: audit the current user's home, no become.
+    audit_paths:
+      - "{{ lookup('ansible.builtin.env', 'HOME') }}"
+    audit_report_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/system_health.log"
+    # true -> the play fails when findings exist (useful for cron / CI)
+    audit_strict: false
+  tasks:
+    - name: Find world-writable files
+      ansible.builtin.command:
+        argv: "{{ ['find'] + audit_paths + ['-xdev', '-type', 'f', '-perm', '-0002', '-print'] }}"
+      register: world_writable
+      changed_when: false
+      failed_when: world_writable.rc != 0
+
+    - name: List listening sockets
+      ansible.builtin.command:
+        argv: [ss, -H, -tuln]
+      register: listening
+      changed_when: false
+
+    - name: Require a root mount in the gathered facts
+      ansible.builtin.assert:
+        that: ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | list | length > 0
+        fail_msg: "Root filesystem not found in ansible_facts['mounts']"
+        quiet: true
+
+    - name: Compute metrics from real data
+      ansible.builtin.set_fact:
+        world_writable_files: "{{ world_writable.stdout_lines }}"
+        listening_sockets: "{{ listening.stdout_lines }}"
+        disk_used_pct: >-
+          {{ ((1 - (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first).size_available
+          / (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first).size_total) * 100) | round(1) }}
+        mem_used_pct: >-
+          {{ (ansible_facts['memory_mb']['nocache']['used']
+          / ansible_facts['memory_mb']['real']['total'] * 100) | round(1) }}
+
+    - name: Show world-writable files
+      ansible.builtin.debug:
+        msg: "WARNING: world-writable files: {{ world_writable_files }}"
+      when: world_writable_files | length > 0
+
+    - name: Show listening sockets
+      ansible.builtin.debug:
+        var: listening_sockets
+
+    - name: Write audit report
+      ansible.builtin.copy:
+        dest: "{{ audit_report_dest }}"
+        mode: "0644"
+        content: |
+          Audit report
+          Host: {{ ansible_facts['hostname'] }}
+          Date: {{ ansible_facts['date_time']['iso8601'] }}
+          Disk used (/): {{ disk_used_pct }}%
+          Memory used (excl. cache): {{ mem_used_pct }}%
+          World-writable files: {{ world_writable_files | length }}
+          Listening sockets: {{ listening_sockets | length }}
+          Result: {{ 'FINDINGS' if world_writable_files | length > 0 else 'CLEAN' }}
+
+    - name: Fail on findings in strict mode
+      ansible.builtin.assert:
+        that: world_writable_files | length == 0
+        fail_msg: "Audit found {{ world_writable_files | length }} world-writable file(s)"
+      when: audit_strict | bool

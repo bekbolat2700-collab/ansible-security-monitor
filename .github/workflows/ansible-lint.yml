@@ -4,25 +4,31 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+permissions:
+  contents: read
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install Ansible and lint
-        run: pip install ansible ansible-lint
-      - name: Install Ansible collections
-        run: ansible-galaxy collection install community.general
-      - name: Run Ansible Lint
-        run: ansible-lint --warn-list fqcn,no-changed-when,risky-shell-pipe,yaml,command-instead-of-shell,file-permissions telegram_report.yml security_audit.yml || true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Ansible and lint (pinned)
+        run: pip install -r ansible/requirements-dev.txt
+      - name: Run Ansible Lint (strict, fails the job on any finding)
+        working-directory: ansible
+        run: ansible-lint
   trivy-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@master
+        # pinned to the commit of v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           scan-type: 'fs'
           scan-ref: '.'
