@@ -1,0 +1,37 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Update the apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the admin user
+      ansible.builtin.user:
+        name: molecule
+        shell: /bin/bash
+        create_home: true
+
+    - name: Create the .ssh directory of the admin user
+      ansible.builtin.file:
+        path: /home/molecule/.ssh
+        state: directory
+        owner: molecule
+        group: molecule
+        mode: "0700"
+
+    - name: Install a test public key for the admin user
+      ansible.builtin.copy:
+        dest: /home/molecule/.ssh/authorized_keys
+        content: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMoleculeTestKeyNotARealKey molecule-test\n"
+        owner: molecule
+        group: molecule
+        mode: "0600"
+
+    - name: Create a user without any SSH keys
+      ansible.builtin.user:
+        name: nokeys
+        shell: /bin/bash
+        create_home: true

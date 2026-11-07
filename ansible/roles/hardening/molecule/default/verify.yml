@@ -1,0 +1,82 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Read the effective sshd configuration
+      ansible.builtin.command: /usr/sbin/sshd -T
+      register: hardening_verify_sshd
+      changed_when: false
+
+    - name: Assert the effective SSH settings
+      ansible.builtin.assert:
+        that:
+          - "'permitrootlogin no' in hardening_verify_sshd.stdout_lines"
+          - "'passwordauthentication no' in hardening_verify_sshd.stdout_lines"
+          - "'maxauthtries 3' in hardening_verify_sshd.stdout_lines"
+          - "'x11forwarding no' in hardening_verify_sshd.stdout_lines"
+          - "'allowtcpforwarding no' in hardening_verify_sshd.stdout_lines"
+        quiet: true
+
+    - name: Read the sysctl hardening file
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/90-hardening.conf
+      register: hardening_verify_sysctl
+
+    - name: Assert sysctl values
+      ansible.builtin.assert:
+        that:
+          - "'kernel.randomize_va_space = 2' in (hardening_verify_sysctl.content | b64decode)"
+          - "'net.ipv4.tcp_syncookies = 1' in (hardening_verify_sysctl.content | b64decode)"
+          - "'ip_forward' not in (hardening_verify_sysctl.content | b64decode)"
+        quiet: true
+
+    - name: Read the unattended-upgrades configuration
+      ansible.builtin.slurp:
+        src: /etc/apt/apt.conf.d/20auto-upgrades
+      register: hardening_verify_updates
+
+    - name: Assert periodic upgrades are enabled
+      ansible.builtin.assert:
+        that: "'Unattended-Upgrade \"1\"' in (hardening_verify_updates.content | b64decode)"
+        quiet: true
+
+    - name: Read the fail2ban jail
+      ansible.builtin.slurp:
+        src: /etc/fail2ban/jail.d/10-sshd-hardening.conf
+      register: hardening_verify_jail
+
+    - name: Assert the fail2ban jail
+      ansible.builtin.assert:
+        that:
+          - "'enabled = true' in (hardening_verify_jail.content | b64decode)"
+          - "'maxretry = 5' in (hardening_verify_jail.content | b64decode)"
+        quiet: true
+
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+      when: hardening_verify_check_services | default(true) | bool
+
+    - name: Assert fail2ban is running
+      ansible.builtin.assert:
+        that: ansible_facts['services']['fail2ban.service']['state'] == 'running'
+        quiet: true
+      when: hardening_verify_check_services | default(true) | bool
+
+    - name: Lockout protection refuses an admin user without keys
+      block:
+        - name: Run the role with a keyless admin user (must be refused)
+          ansible.builtin.include_role:
+            name: hardening
+          vars:
+            hardening_ssh_admin_user: nokeys
+
+        - name: Fail if the role was not refused
+          ansible.builtin.fail:
+            msg: The role applied hardening for a keyless admin user
+      rescue:
+        - name: Check that the refusal came from lockout protection
+          ansible.builtin.assert:
+            that: "'Lockout protection' in ansible_failed_result.msg"
+            quiet: true
