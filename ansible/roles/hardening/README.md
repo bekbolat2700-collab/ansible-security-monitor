@@ -34,11 +34,23 @@ ansible-playbook playbooks/harden.yml -e target=myhost \
 
 Variables and defaults: `defaults/main.yml`.
 
-## What is verified
+## Tests
 
-Verified: `ansible-lint` (production profile); a real run on Ubuntu 24.04 (services and runtime sysctl
-disabled); second run reports `changed=0`; `sshd -T` shows the effective values; lockout protection
-refuses `root` as the admin user; `--tags` and firewall `--check` work.
+Molecule runs the role in a systemd container (`geerlingguy/docker-ubuntu*-ansible`) and checks:
+convergence, **idempotence** (second run changes nothing), the effective `sshd -T` values, sysctl,
+fail2ban and unattended-upgrades configuration, fail2ban running, and that **lockout protection
+refuses** a keyless admin user. CI runs it on Ubuntu 22.04 and 24.04.
 
-Not verified yet: Debian 12 and Ubuntu 22.04; services actually running (fail2ban, auditd);
-runtime `sysctl --system`; a real `ufw enable`. Molecule tests are the next step.
+```bash
+cd ansible/roles/hardening
+pip install -r ../../requirements-dev.txt
+molecule test                              # Ubuntu 24.04 (default)
+MOLECULE_DISTRO=ubuntu2204 molecule test   # another distro
+```
+
+Also verified outside Molecule: `ansible-lint` (production profile), a real run on Ubuntu 24.04, `changed=0`
+on the second run, dry-run (`--check`) on a real host, and mutation tests (a competing drop-in or a wrong
+value makes the role or the verify step fail).
+
+Not covered in containers: auditd (needs the audit netlink socket), runtime `sysctl --system`,
+a real `ufw enable`, Debian 12.

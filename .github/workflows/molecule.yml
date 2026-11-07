@@ -1,0 +1,35 @@
+name: Molecule
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/molecule.yml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/molecule.yml'
+permissions:
+  contents: read
+jobs:
+  molecule:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [ ubuntu2204, ubuntu2404 ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Ansible, Molecule and lint (pinned)
+        run: pip install -r ansible/requirements-dev.txt
+      - name: Run Molecule (create, converge, idempotence, verify, destroy)
+        working-directory: ansible/roles/hardening
+        env:
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+        run: molecule test

@@ -1,0 +1,11 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    hardening_ssh_admin_user: molecule
+    # A container cannot write kernel parameters and has no audit netlink socket.
+    hardening_sysctl_apply: false
+    hardening_auditd_enabled: false
+  roles:
+    - role: hardening

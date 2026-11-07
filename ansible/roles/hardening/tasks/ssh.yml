@@ -58,3 +58,21 @@
     mode: "0644"
     validate: /usr/sbin/sshd -t -f %s
   notify: Reload sshd
+
+- name: Read the effective sshd configuration
+  ansible.builtin.command: /usr/sbin/sshd -T
+  register: hardening_ssh_effective
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Assert that no other drop-in overrides the hardening values (first value wins)
+  ansible.builtin.assert:
+    that:
+      - "('permitrootlogin ' ~ hardening_ssh_permit_root_login) in hardening_ssh_effective.stdout_lines"
+      - "('passwordauthentication ' ~ hardening_ssh_password_authentication) in hardening_ssh_effective.stdout_lines"
+      - "('maxauthtries ' ~ hardening_ssh_max_auth_tries) in hardening_ssh_effective.stdout_lines"
+    fail_msg: >-
+      The effective sshd configuration differs from the requested values. Another file in
+      /etc/ssh/sshd_config.d/ sorted before 10-hardening.conf probably overrides it. Inspect with: sshd -T
+    quiet: true
+  when: not ansible_check_mode
