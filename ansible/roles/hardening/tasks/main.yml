@@ -1,0 +1,37 @@
+---
+- name: Assert a supported OS family
+  ansible.builtin.assert:
+    that: ansible_facts['os_family'] == 'Debian'
+    fail_msg: "This role supports Debian/Ubuntu only, got {{ ansible_facts['os_family'] }}"
+    quiet: true
+  tags: [always]
+
+- name: Harden SSH
+  ansible.builtin.import_tasks: ssh.yml
+  when: hardening_ssh_enabled | bool
+  tags: [ssh]
+
+- name: Apply kernel network hardening
+  ansible.builtin.import_tasks: sysctl.yml
+  when: hardening_sysctl_enabled | bool
+  tags: [sysctl]
+
+- name: Configure fail2ban
+  ansible.builtin.import_tasks: fail2ban.yml
+  when: hardening_fail2ban_enabled | bool
+  tags: [fail2ban]
+
+- name: Enable unattended security upgrades
+  ansible.builtin.import_tasks: updates.yml
+  when: hardening_updates_enabled | bool
+  tags: [updates]
+
+- name: Configure auditd
+  ansible.builtin.import_tasks: auditd.yml
+  when: hardening_auditd_enabled | bool
+  tags: [auditd]
+
+- name: Configure the firewall
+  ansible.builtin.import_tasks: firewall.yml
+  when: hardening_firewall_enabled | bool
+  tags: [firewall]

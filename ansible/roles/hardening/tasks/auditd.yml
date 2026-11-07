@@ -1,0 +1,23 @@
+---
+- name: Install auditd
+  ansible.builtin.apt:
+    name: auditd
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Deploy audit rules
+  ansible.builtin.template:
+    src: audit_rules.j2
+    dest: /etc/audit/rules.d/90-hardening.rules
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Load audit rules
+
+- name: Enable and start auditd
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true
+  when: hardening_manage_services | bool
