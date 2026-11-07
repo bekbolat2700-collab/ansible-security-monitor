@@ -1,0 +1,75 @@
+---
+# --- Feature switches -------------------------------------------------------
+hardening_ssh_enabled: true
+hardening_sysctl_enabled: true
+hardening_fail2ban_enabled: true
+hardening_updates_enabled: true
+hardening_auditd_enabled: true
+# Opt-in: a wrong firewall rule can lock you out of a remote host.
+hardening_firewall_enabled: false
+
+# --- Behaviour switches (set to false in containers / CI) -------------------
+# Start, enable and reload services.
+hardening_manage_services: true
+# Apply sysctl values to the running kernel (needs write access to /proc/sys).
+hardening_sysctl_apply: true
+
+# --- SSH --------------------------------------------------------------------
+hardening_ssh_port: 22
+# The user that must still be able to log in after hardening.
+hardening_ssh_admin_user: "{{ ansible_facts['user_id'] }}"
+# Refuse to disable password login / root login if that would lock the admin out.
+hardening_ssh_lockout_check: true
+hardening_ssh_permit_root_login: "no"
+hardening_ssh_password_authentication: "no"
+hardening_ssh_max_auth_tries: 3
+hardening_ssh_login_grace_time: 30
+hardening_ssh_client_alive_interval: 300
+hardening_ssh_client_alive_count_max: 2
+hardening_ssh_allow_tcp_forwarding: "no"
+hardening_ssh_x11_forwarding: "no"
+
+# --- sysctl -----------------------------------------------------------------
+# Deliberately NOT touched: net.ipv4.ip_forward (Docker, k3d and Kubernetes need it).
+hardening_sysctl_settings:
+  net.ipv4.conf.all.rp_filter: 1
+  net.ipv4.conf.default.rp_filter: 1
+  net.ipv4.conf.all.accept_redirects: 0
+  net.ipv4.conf.default.accept_redirects: 0
+  net.ipv4.conf.all.send_redirects: 0
+  net.ipv4.conf.all.accept_source_route: 0
+  net.ipv4.conf.all.log_martians: 1
+  net.ipv4.icmp_echo_ignore_broadcasts: 1
+  net.ipv4.tcp_syncookies: 1
+  kernel.randomize_va_space: 2
+  kernel.dmesg_restrict: 1
+  kernel.kptr_restrict: 2
+  fs.protected_hardlinks: 1
+  fs.protected_symlinks: 1
+  fs.suid_dumpable: 0
+
+# --- fail2ban ---------------------------------------------------------------
+hardening_fail2ban_maxretry: 5
+hardening_fail2ban_findtime: 10m
+hardening_fail2ban_bantime: 1h
+# Ubuntu/Debian cloud images often have no /var/log/auth.log; read the journal.
+hardening_fail2ban_backend: systemd
+
+# --- unattended upgrades ----------------------------------------------------
+hardening_updates_update_package_lists: 1
+hardening_updates_unattended_upgrade: 1
+
+# --- auditd -----------------------------------------------------------------
+hardening_audit_watches:
+  - { path: /etc/passwd, key: identity }
+  - { path: /etc/shadow, key: identity }
+  - { path: /etc/group, key: identity }
+  - { path: /etc/sudoers, key: sudo }
+  - { path: /etc/sudoers.d/, key: sudo }
+  - { path: /etc/ssh/sshd_config, key: sshd }
+  - { path: /etc/ssh/sshd_config.d/, key: sshd }
+
+# --- firewall (ufw) ---------------------------------------------------------
+# SSH is always allowed (rate-limited) before the firewall is enabled.
+# Extra ports, e.g.: [{ port: 443, proto: tcp }, { port: 1514, proto: udp }]
+hardening_firewall_allowed_ports: []

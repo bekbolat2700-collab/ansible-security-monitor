@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: hardening
+  author: bekbolat2700-collab
+  description: Baseline hardening for Debian/Ubuntu - SSH, sysctl, fail2ban, unattended upgrades, auditd, optional ufw
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags:
+    - security
+    - hardening
+    - ssh
+dependencies: []

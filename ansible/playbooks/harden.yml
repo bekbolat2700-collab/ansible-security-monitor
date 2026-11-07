@@ -1,0 +1,10 @@
+---
+# Safe by default: runs on the (empty) group hardening_targets, so nothing
+# happens unless you pass a target explicitly:
+#   ansible-playbook playbooks/harden.yml -e target=myhost -K
+- name: Apply the hardening role
+  hosts: "{{ target | default('hardening_targets') }}"
+  become: true
+  gather_facts: true
+  roles:
+    - role: hardening

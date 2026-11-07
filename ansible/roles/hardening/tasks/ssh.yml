@@ -1,0 +1,60 @@
+---
+- name: Look up the admin user
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ hardening_ssh_admin_user }}"
+
+- name: Check authorized_keys of the admin user
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['getent_passwd'][hardening_ssh_admin_user][4] }}/.ssh/authorized_keys"
+  register: hardening_ssh_authorized_keys
+
+- name: Refuse to lock the admin user out
+  ansible.builtin.assert:
+    that:
+      - hardening_ssh_password_authentication != 'no' or (hardening_ssh_authorized_keys.stat.exists and hardening_ssh_authorized_keys.stat.size > 0)
+      - hardening_ssh_permit_root_login != 'no' or hardening_ssh_admin_user != 'root'
+    fail_msg: >-
+      Lockout protection: password login or root login would be disabled but
+      '{{ hardening_ssh_admin_user }}' has no non-empty authorized_keys (or is root).
+      Add a public key first, or set hardening_ssh_lockout_check: false if you know what you are doing.
+    quiet: true
+  when: hardening_ssh_lockout_check | bool
+
+- name: Install the OpenSSH server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Verify that sshd reads drop-in files
+  ansible.builtin.command: grep -Eq '^Include[[:space:]]+/etc/ssh/sshd_config.d/' /etc/ssh/sshd_config
+  register: hardening_ssh_include
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Assert drop-in support
+  ansible.builtin.assert:
+    that: hardening_ssh_include.rc == 0
+    fail_msg: "/etc/ssh/sshd_config has no 'Include /etc/ssh/sshd_config.d/*.conf'; this role needs a drop-in capable OpenSSH config"
+    quiet: true
+
+- name: Ensure the sshd privilege separation directory exists (needed by sshd -t)
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the SSH hardening drop-in (validated with sshd -t)
+  ansible.builtin.template:
+    src: sshd_hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/10-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload sshd

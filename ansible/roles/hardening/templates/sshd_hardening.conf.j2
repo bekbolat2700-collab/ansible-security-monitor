@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+# Written first (10-) so it wins: sshd uses the first value it sees.
+PermitRootLogin {{ hardening_ssh_permit_root_login }}
+PasswordAuthentication {{ hardening_ssh_password_authentication }}
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+MaxAuthTries {{ hardening_ssh_max_auth_tries }}
+LoginGraceTime {{ hardening_ssh_login_grace_time }}
+ClientAliveInterval {{ hardening_ssh_client_alive_interval }}
+ClientAliveCountMax {{ hardening_ssh_client_alive_count_max }}
+AllowTcpForwarding {{ hardening_ssh_allow_tcp_forwarding }}
+X11Forwarding {{ hardening_ssh_x11_forwarding }}

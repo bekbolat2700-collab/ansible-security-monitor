@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+{% for watch in hardening_audit_watches %}
+-w {{ watch.path }} -p wa -k {{ watch.key }}
+{% endfor %}
