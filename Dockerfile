@@ -17,8 +17,5 @@ COPY mitre_mapping.py .
 COPY ai_security_advisor.py .
 COPY debug_ci.py .
 
-# Security: run as non-root user
-RUN useradd -m -u 1000 appuser
-USER appuser
 
 CMD ["sh", "-c", "touch /tmp/ready /tmp/healthy; while true; do python3 ai_security_advisor.py || true; touch /tmp/ready /tmp/healthy; sleep 300; done"]
