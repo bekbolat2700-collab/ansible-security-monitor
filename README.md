@@ -207,3 +207,7 @@ The pipeline exports metrics to Prometheus after every scan; the dashboard is st
 - GitHub: [@bekbolat2700-collab](https://github.com/bekbolat2700-collab)
 
 > *"Security is a workflow, not a collection of tools."*
+
+## Merge gate test
+
+Does a failing check actually block a merge? Results of four cases (failing lint, a required check that never reports, a new commit after a green run) are in [docs/merge-gate-test.md](docs/merge-gate-test.md). The scripts to repeat the test are in [tools/merge-gate-lab](tools/merge-gate-lab).
