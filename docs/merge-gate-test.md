@@ -33,7 +33,7 @@ Run date: 2026-11-16 (UTC).
 - The owner of the repository was tested. With no bypass actors the owner is bound by the rule, but a second account without admin rights was not used.
 - The "branch must be up to date" option was not enabled.
 - The first run of case 1 did not trigger `docs-check`, so two things blocked that merge. It was repeated as case 1b with `docs-check` passing, so only the red lint could block it.
-- The test ran in a lab repository. The ruleset of this repository is configured separately and was not part of this run.
+- The four cases ran in a lab repository. The ruleset of this repository (`protect-master`: pull request required, required checks `lint`, `kics` and `correlation-engine-tests`, no bypass actors) was checked separately on 2026-11-17 with a test pull request that broke FQCN on purpose: `lint` failed, the other required checks passed, and the Merge button was disabled. That pull request was closed without merging.
 
 ## Repeat it
 
