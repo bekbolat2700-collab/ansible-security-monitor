@@ -211,3 +211,15 @@ The pipeline exports metrics to Prometheus after every scan; the dashboard is st
 ## Merge gate test
 
 Does a failing check actually block a merge? Results of four cases (failing lint, a required check that never reports, a new commit after a green run) are in [docs/merge-gate-test.md](docs/merge-gate-test.md). The scripts to repeat the test are in [tools/merge-gate-lab](tools/merge-gate-lab).
+
+## Image pinning and SBOM
+
+- The base image in `Dockerfile` and the four images in `docker-compose.yml` are pinned by digest (they used `:latest`).
+- CI generates a CycloneDX SBOM in the `trivy-scan` job and uploads it as the `sbom-cyclonedx` artifact.
+- Find a package in an SBOM: `jq '.components[] | select(.name=="requests") | {name, version}' sbom.cdx.json`
+
+Limits (first step, not the whole chain):
+- The SBOM covers repository dependency manifests only (currently `requirements.txt`), not the container image or OS packages.
+- It is not yet linked to deployment records or runtime logs.
+- The Molecule test image is still `:latest`.
+- `ai-gatekeeper.yml` installs Trivy with `curl | sh` from the `main` branch; to be pinned.
