@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   vault:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault@sha256:dfa48c2fa2b0099ccb47681ec5c4804bf5aec9d6879ecfee07ad4b92a5427ad6  # was :latest, pinned 2026-11-21
     container_name: vault
     ports:
       - "127.0.0.1:8200:8200"
@@ -15,7 +15,7 @@ services:
       - security-network
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06  # was :latest, pinned 2026-11-21
     container_name: prometheus
     ports:
       - "127.0.0.1:9090:9090"
@@ -25,7 +25,7 @@ services:
       - security-network
 
   pushgateway:
-    image: prom/pushgateway:latest
+    image: prom/pushgateway@sha256:7332ee96119c0b927a3e64971189d884718939b6102c3e9e047bc11e83715d6f  # was :latest, pinned 2026-11-21
     container_name: pushgateway
     ports:
       - "127.0.0.1:9091:9091"
@@ -33,7 +33,7 @@ services:
       - security-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana@sha256:0615ec4fbd4072004b7d86b46ded63013a74b7d6eb1119273dd89e8fa25c13cf  # was :latest, pinned 2026-11-21
     container_name: grafana
     ports:
       - "127.0.0.1:3000:3000"
