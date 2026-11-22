@@ -53,3 +53,18 @@ jobs:
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
+      - name: Build image for SBOM
+        run: docker build -t security-monitor:ci .
+      - name: Generate image SBOM (CycloneDX)
+        # same pinned commit of trivy-action as above (v0.36.0)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: 'image'
+          image-ref: 'security-monitor:ci'
+          format: 'cyclonedx'
+          output: 'sbom-image.cdx.json'
+      - name: Upload image SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-image-cyclonedx
+          path: sbom-image.cdx.json

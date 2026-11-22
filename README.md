@@ -216,10 +216,11 @@ Does a failing check actually block a merge? Results of four cases (failing lint
 
 - The base image in `Dockerfile` and the four images in `docker-compose.yml` are pinned by digest (they used `:latest`).
 - CI generates a CycloneDX SBOM in the `trivy-scan` job and uploads it as the `sbom-cyclonedx` artifact.
+- The same job builds the container image and generates a second SBOM for it (`sbom-image-cyclonedx` artifact): 136 components, including Debian OS packages and Python libraries.
 - Find a package in an SBOM: `jq '.components[] | select(.name=="requests") | {name, version}' sbom.cdx.json`
 
 Limits (first step, not the whole chain):
-- The SBOM covers repository dependency manifests only (currently `requirements.txt`), not the container image or OS packages.
+- The repository SBOM covers dependency manifests only (currently `requirements.txt`, 3 components). The image SBOM is built in CI from the Dockerfile; the image is not published or deployed anywhere.
 - It is not yet linked to deployment records or runtime logs.
 - The Molecule test image is still `:latest`.
 - `ai-gatekeeper.yml` installs Trivy with `curl | sh` from the `main` branch; to be pinned.
