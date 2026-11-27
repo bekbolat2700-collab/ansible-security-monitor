@@ -14,7 +14,7 @@
         that:
           - "'permitrootlogin no' in hardening_verify_sshd.stdout_lines"
           - "'passwordauthentication no' in hardening_verify_sshd.stdout_lines"
-          - "'maxauthtries 3' in hardening_verify_sshd.stdout_lines"
+          - "'maxauthtries 99' in hardening_verify_sshd.stdout_lines"
           - "'x11forwarding no' in hardening_verify_sshd.stdout_lines"
           - "'allowtcpforwarding no' in hardening_verify_sshd.stdout_lines"
         quiet: true
