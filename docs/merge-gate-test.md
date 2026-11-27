@@ -25,7 +25,7 @@ Run date: 2026-11-16 (UTC).
 
 - A failing required check blocks the merge, not only the job.
 - Evidence is per commit: a green run on an earlier commit does not carry over to a new one.
-- **A required check with a path filter blocks every pull request that does not trigger it** (case 2). This is why the Molecule workflow in this repository is not a required check: it runs only when `ansible/**` changes, so making it required would leave other pull requests waiting forever.
+- **A required check with a path filter blocks every pull request that does not trigger it** (case 2). This is why the Molecule workflow in this repository was not a required check at first: it ran only when `ansible/**` changes, so making it required would have left other pull requests waiting forever. See [Molecule gate](#molecule-gate-always-run-workflow-and-a-final-gate-job) below for the fix.
   A way around it is an always-running job that decides internally what to skip. That is not implemented here.
 
 ## Limits
@@ -44,3 +44,23 @@ The scripts are in `tools/merge-gate-lab/`. They need the GitHub CLI (`gh`) logg
 3. Save the results, then `bash merge_gate_cleanup.sh` deletes the repository (it needs the `delete_repo` scope and asks you to type `DELETE`).
 
 The test design follows a suggestion from a public discussion: test a deliberately failing change, a required check that never reports, and a new commit after a green run; record "job red" and "merge blocked" separately.
+
+## Molecule gate: always-run workflow and a final gate job
+
+Follow-up to the path-filter finding, using an idea from John Duggin. `molecule.yml` now runs on every pull request:
+
+1. `changes` always runs and checks with `git diff` whether `ansible/**` or the workflow file itself changed.
+2. `molecule` (Ubuntu 22.04 and 24.04) runs only if it did.
+3. `molecule-gate` always runs (`if: always()`) and is the only Molecule check required by the ruleset. It fails if change detection failed, or if Molecule was needed and did not succeed; it passes when nothing in `ansible/` changed.
+
+Observed (repository owner, one run per case):
+
+| Case | `changes` | `molecule` | `molecule-gate` | Merge |
+|---|---|---|---|---|
+| Docs-only change | success | skipped | success | allowed |
+| Deliberate Molecule failure (a wrong `maxauthtries` expectation in `verify.yml`), gate not yet required | success | failure (both distros) | failure | **allowed** |
+| Same failure, `molecule-gate` added to the ruleset | success | failure (both distros) | failure (Required) | **blocked** |
+
+The middle row is the point: a red gate that is not a required status check blocks nothing. The gate only protects the branch once it is required in the ruleset.
+
+Limits: tested as the repository owner only, one run per case. The docs-only case ran before `molecule-gate` was added to the ruleset. The test pull requests were closed without merging.
