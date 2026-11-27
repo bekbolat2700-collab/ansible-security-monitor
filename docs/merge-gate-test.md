@@ -44,3 +44,4 @@ The scripts are in `tools/merge-gate-lab/`. They need the GitHub CLI (`gh`) logg
 3. Save the results, then `bash merge_gate_cleanup.sh` deletes the repository (it needs the `delete_repo` scope and asks you to type `DELETE`).
 
 The test design follows a suggestion from a public discussion: test a deliberately failing change, a required check that never reports, and a new commit after a green run; record "job red" and "merge blocked" separately.
+
