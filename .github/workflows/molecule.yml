@@ -2,18 +2,41 @@ name: Molecule
 on:
   push:
     branches: [ master ]
-    paths:
-      - 'ansible/**'
-      - '.github/workflows/molecule.yml'
   pull_request:
     branches: [ master ]
-    paths:
-      - 'ansible/**'
-      - '.github/workflows/molecule.yml'
 permissions:
   contents: read
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      ansible: ${{ steps.detect.outputs.ansible }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect Ansible changes
+        id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+            echo "Changed files:"; echo "$files"
+            if echo "$files" | grep -qE '^(ansible/|\.github/workflows/molecule\.yml$)'; then
+              echo "ansible=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "ansible=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "ansible=true" >> "$GITHUB_OUTPUT"
+          fi
   molecule:
+    needs: changes
+    if: needs.changes.outputs.ansible == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,3 +56,28 @@ jobs:
         env:
           MOLECULE_DISTRO: ${{ matrix.distro }}
         run: molecule test
+  molecule-gate:
+    needs: [ changes, molecule ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide gate result
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CHANGED: ${{ needs.changes.outputs.ansible }}
+          MOLECULE_RESULT: ${{ needs.molecule.result }}
+        run: |
+          echo "changes=$CHANGES_RESULT ansible_changed=$CHANGED molecule=$MOLECULE_RESULT"
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "Change detection did not succeed"; exit 1
+          fi
+          if [ "$CHANGED" = "true" ]; then
+            if [ "$MOLECULE_RESULT" != "success" ]; then
+              echo "Ansible changed, Molecule must pass (result: $MOLECULE_RESULT)"; exit 1
+            fi
+          else
+            if [ "$MOLECULE_RESULT" = "failure" ] || [ "$MOLECULE_RESULT" = "cancelled" ]; then
+              echo "Unexpected Molecule result: $MOLECULE_RESULT"; exit 1
+            fi
+          fi
+          echo "Gate passed"
